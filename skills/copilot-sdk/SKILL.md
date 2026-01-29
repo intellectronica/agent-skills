@@ -1,6 +1,6 @@
 ---
 name: copilot-sdk
-description: This skill provides guidance for creating agents and applications with the GitHub Copilot SDK. IMPORTANT: When using the SDK with TypeScript/Node.js, the project MUST use ESM (ECMAScript Modules). CommonJS (require/module.exports) is NOT supported. It should be used when the user wants to create, modify, or work on software that uses the GitHub Copilot SDK in TypeScript (ESM only), Python, Go, or .NET. The skill covers SDK usage patterns, ESM-based project configuration, CLI configuration, custom tools, MCP servers, and custom agents.
+description: This skill provides guidance for creating agents and applications with the GitHub Copilot SDK. IMPORTANT - When using the SDK with TypeScript/Node.js, the project MUST use ESM (ECMAScript Modules). CommonJS (require/module.exports) is NOT supported. It should be used when the user wants to create, modify, or work on software that uses the GitHub Copilot SDK in TypeScript (ESM only), Python, Go, or .NET. The skill covers SDK usage patterns, ESM-based project configuration, CLI configuration, custom tools, MCP servers, and custom agents.
 ---
 
 # GitHub Copilot SDK
