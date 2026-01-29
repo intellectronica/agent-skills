@@ -1,6 +1,6 @@
 ---
 name: copilot-sdk
-description: This skill provides guidance for creating agents and applications with the GitHub Copilot SDK. It should be used when the user wants to create, modify, or work on software that uses the GitHub Copilot SDK in TypeScript, Python, Go, or .NET. The skill covers SDK usage patterns, CLI configuration, custom tools, MCP servers, and custom agents.
+description: This skill provides guidance for creating agents and applications with the GitHub Copilot SDK. ⚠️ IMPORTANT: When using the SDK with TypeScript/Node.js, the project MUST use ESM (ECMAScript Modules). CommonJS (require/module.exports) is NOT supported. It should be used when the user wants to create, modify, or work on software that uses the GitHub Copilot SDK in TypeScript (ESM only), Python, Go, or .NET. The skill covers SDK usage patterns, ESM-based project configuration, CLI configuration, custom tools, MCP servers, and custom agents.
 ---
 
 # GitHub Copilot SDK
@@ -9,9 +9,14 @@ description: This skill provides guidance for creating agents and applications w
 
 The GitHub Copilot SDK is a multi-platform agent runtime that embeds Copilot's agentic workflows into applications. It exposes the same engine behind Copilot CLI, enabling programmatic invocation without requiring custom orchestration development.
 
+**Critical Constraint (TypeScript / Node.js):**
+- The Copilot SDK for Node.js is **ESM-only**
+- Projects **MUST** use ECMAScript Modules
+- CommonJS (`require`, `module.exports`) is **not supported**
+
 **Status:** Technical Preview (suitable for development and testing)
 
-**Supported Languages:** TypeScript/Node.js, Python, Go, .NET
+**Supported Languages:** TypeScript/Node.js (ESM only), Python, Go, .NET
 
 ## Primary Documentation
 
@@ -41,13 +46,27 @@ The GitHub Copilot SDK is a multi-platform agent runtime that embeds Copilot's a
 
 1. **GitHub Copilot Subscription** - Pro, Pro+, Business, or Enterprise
 2. **GitHub Copilot CLI** - Installed and authenticated (`copilot --version`)
-3. **Runtime:** Node.js 18+, Python 3.8+, Go 1.21+, or .NET 8.0+
+3. **Runtime:**
+   - **Node.js 18+ (ESM required)**
+   - Python 3.8+
+   - Go 1.21+
+   - .NET 8.0+
+
+4. **TypeScript / Node.js Project Requirements**
+   - `package.json` MUST include:
+     ```json
+     {
+       "type": "module"
+     }
+     ```
+   - Use `import` / `export`
+   - Do NOT use `require()` or `module.exports`
 
 ## Installation
 
 | Language | Command |
 |----------|---------|
-| TypeScript/Node.js | `npm install @github/copilot-sdk` |
+| TypeScript/Node.js (ESM) | `npm install @github/copilot-sdk` |
 | Python | `pip install github-copilot-sdk` |
 | Go | `go get github.com/github/copilot-sdk/go` |
 | .NET | `dotnet add package GitHub.Copilot.SDK` |
@@ -55,16 +74,18 @@ The GitHub Copilot SDK is a multi-platform agent runtime that embeds Copilot's a
 ## Architecture
 
 ```
-Application → SDK Client → JSON-RPC → Copilot CLI (server mode)
+Application (ESM) → SDK Client → JSON-RPC → Copilot CLI (server mode)
 ```
 
 The SDK manages CLI lifecycle automatically. External server connections supported via `cliUrl` / `cli_url`.
 
 ---
 
-## Quick Start (TypeScript)
+## Quick Start (TypeScript – ESM REQUIRED)
 
 ```typescript
+// package.json MUST include: { "type": "module" }
+
 import { CopilotClient } from "@github/copilot-sdk";
 
 const client = new CopilotClient();
@@ -85,7 +106,10 @@ await session.destroy();
 await client.stop();
 ```
 
-**Critical:** Register event handlers **before** calling `send()` to capture all events.
+**Critical:**
+- ESM only (`import`)
+- No CommonJS
+- Register event handlers **before** calling `send()`
 
 For complete examples in all languages, see `references/working-examples.md`.
 
@@ -147,7 +171,7 @@ See [Supported AI Models](https://docs.github.com/en/copilot/reference/ai-models
 
 ## Custom Tools
 
-**TypeScript (Zod):**
+**TypeScript (ESM + Zod):**
 ```typescript
 const tool = defineTool("lookup_issue", {
   description: "Fetch issue details",
@@ -169,8 +193,8 @@ For complete tool examples in all languages, see `references/working-examples.md
 
 ## Language Conventions
 
-| Concept | TypeScript | Python | Go | .NET |
-|---------|------------|--------|----|----|
+| Concept | TypeScript (ESM) | Python | Go | .NET |
+|---------|------------------|--------|----|----|
 | Create session | `createSession()` | `create_session()` | `CreateSession()` | `CreateSessionAsync()` |
 | Delta content | `deltaContent` | `delta_content` | `DeltaContent` | `DeltaContent` |
 
@@ -192,6 +216,7 @@ For custom agents and MCP setup, see `references/cli-agents-mcp.md`.
 
 | Problem | Solution |
 |---------|----------|
+| Import errors | Ensure ESM (`"type": "module"`) |
 | Events fire but content empty | Use `event.data.content`, not `event.content` |
 | Handler never fires | Register **before** `send()` |
 | Python enum issues | Use `event.type.value` |
