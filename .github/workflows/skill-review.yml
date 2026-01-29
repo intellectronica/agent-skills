@@ -30,4 +30,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.COPILOT_PAT }}
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: bun run improvebot/review.ts --limit 3
+        run: bun run improvebot/review.ts
