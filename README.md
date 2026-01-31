@@ -2,6 +2,15 @@
 
 **[`@intellectronica`](https://intellectronica.net/)'s agent skills**
 
+### Installation
+
+- **Using the `skills` CLI**: `npx skills add intellectronica/agent-skills --skill skill-name`
+- **As a Plugin Marketplace (Claude Code / Cowork)**
+  - `claude plugin marketplace add intellectronica/agent-skills`
+  - `claude plugin install skill-name@intellectronica-skills`
+
+---
+
 <table border="0" cellspacing="0" cellpadding="10">
 <tr>
 <td valign="top" width="50%">
@@ -26,34 +35,6 @@ Discover how Agent Skills can customise AI agents in these free tutorials.
 </table>
 
 ---
-
-## Installation
-
-### As a Plugin Marketplace (Claude Code / Cowork)
-
-Add this repository as a plugin marketplace:
-```bash
-claude plugin marketplace add intellectronica/agent-skills
-```
-
-Install individual plugins:
-```bash
-claude plugin install anki-connect@intellectronica-skills
-```
-
-### As Agent Skills (npx)
-
-```bash
-npx skills add intellectronica/agent-skills --skill anki-connect
-```
-
----
-
-> **Note**: The `plugins/` directory is auto-generated from `skills/`.
-> To contribute, edit files in `skills/` — do not edit `plugins/` directly.
-
----
-
 
 | Skill | Description |
 |-------|-------------|
