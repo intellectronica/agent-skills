@@ -1,6 +1,11 @@
 # Todoist Filter Query Syntax
 
-The `filter` parameter on `/tasks` accepts Todoist's filter query language, enabling powerful task queries.
+The `filter` parameter on `GET /tasks` accepts Todoist's filter query language.
+
+## ⚠️ Priority Note
+
+Filter syntax uses **UI labels** (p1 = urgent), not API field values (priority 4 = urgent).
+See the Priority Mapping table in SKILL.md.
 
 ## Basic Filters
 
@@ -10,8 +15,8 @@ The `filter` parameter on `/tasks` accepts Todoist's filter query language, enab
 | `tomorrow` | Tasks due tomorrow |
 | `overdue` | Overdue tasks |
 | `no date` | Tasks without a due date |
-| `7 days` | Tasks due within the next 7 days |
-| `next week` | Tasks due next week |
+| `7 days` | Due within next 7 days |
+| `next week` | Due next week |
 | `recurring` | Recurring tasks only |
 
 ## Date Filters
@@ -26,12 +31,12 @@ The `filter` parameter on `/tasks` accepts Todoist's filter query language, enab
 
 ## Priority Filters
 
-| Filter | Description |
-|--------|-------------|
-| `p1` | Priority 1 (urgent) |
-| `p2` | Priority 2 (high) |
-| `p3` | Priority 3 (medium) |
-| `p4` or `no priority` | Priority 4 (normal) |
+| Filter | UI meaning | API `priority` value |
+|--------|-----------|---------------------|
+| `p1` | Urgent (red) | 4 |
+| `p2` | High (orange) | 3 |
+| `p3` | Medium (blue) | 2 |
+| `p4` / `no priority` | Normal | 1 |
 
 ## Label Filters
 
@@ -59,8 +64,6 @@ The `filter` parameter on `/tasks` accepts Todoist's filter query language, enab
 
 ## Combining Filters
 
-Use logical operators to combine filters:
-
 | Operator | Description | Example |
 |----------|-------------|---------|
 | `&` | AND | `today & p1` |
@@ -70,23 +73,7 @@ Use logical operators to combine filters:
 
 ## URL Encoding
 
-When using filters in curl requests, URL-encode special characters:
-
-```bash
-# today & p1
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today%20%26%20p1"
-
-# today | overdue
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today%20%7C%20overdue"
-
-# @urgent
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=%40urgent"
-```
-
-## Common Encoding Reference
+URL-encode special characters in curl:
 
 | Character | Encoded |
 |-----------|---------|
@@ -99,38 +86,20 @@ curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
 | `(` | `%28` |
 | `)` | `%29` |
 
-## Example Queries
-
-### High-Priority Tasks Due Soon
+### Examples
 
 ```bash
-# (today | overdue) & (p1 | p2)
-filter="(today%20%7C%20overdue)%20%26%20(p1%20%7C%20p2)"
+# High-priority tasks due soon: (today | overdue) & (p1 | p2)
 curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
-```
+  "https://api.todoist.com/rest/v2/tasks?filter=(today%20%7C%20overdue)%20%26%20(p1%20%7C%20p2)"
 
-### Unassigned Tasks in Work Project
-
-```bash
-# #Work & !assigned
-filter="%23Work%20%26%20!assigned"
+# Tasks with @waiting label due this week
 curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
-```
-
-### Tasks with Label Due This Week
-
-```bash
-# @waiting & 7 days
-filter="%40waiting%20%26%207%20days"
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
+  "https://api.todoist.com/rest/v2/tasks?filter=%40waiting%20%26%207%20days"
 ```
 
 ## Notes
 
 - Filter queries are case-insensitive
-- Project and label names with spaces should be quoted or URL-encoded
-- The filter parameter only works with the GET `/tasks` endpoint
 - Complex filters may require Premium/Business plans
+- The `filter` param only works with `GET /tasks`
