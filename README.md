@@ -11,30 +11,33 @@
 
 ---
 
-<table border="0" cellspacing="0" cellpadding="10">
-<tr>
-<td valign="top" width="50%">
+## Installation
 
-### [Mastering Agent Skills](https://agentic-ventures.com/mastering-agent-skills)
+### As a Plugin Marketplace (Claude Code / Cowork)
 
-Join a hands-on workshop for AI power users to use and create Agent Skills.
+Add this repository as a plugin marketplace:
+```bash
+claude plugin marketplace add intellectronica/agent-skills
+```
 
-<a href="https://agentic-ventures.com/mastering-agent-skills"><img src="https://agentic-ventures.com/skills/mastering-agent-skills/opengraph-image?847390cc6f31fc75" width="100%" alt="Mastering Agent Skills"></a>
+Install individual plugins:
+```bash
+claude plugin install anki-connect@intellectronica-skills
+```
 
-</td>
-<td valign="top" width="50%">
+### As Agent Skills (npx)
 
-### [Introduction to Agent Skills](https://agentic-ventures.com/introduction-to-agent-skills)
-
-Discover how Agent Skills can customise AI agents in these free tutorials.
-
-<a href="https://agentic-ventures.com/introduction-to-agent-skills"><img src="https://agentic-ventures.com/skills/introduction-to-agent-skills/opengraph-image?7fad56ec884473fb" width="100%" alt="Introduction to Agent Skills"></a>
-
-</td>
-</tr>
-</table>
+```bash
+npx skills add intellectronica/agent-skills --skill anki-connect
+```
 
 ---
+
+> **Note**: The `plugins/` directory is auto-generated from `skills/`.
+> To contribute, edit files in `skills/` — do not edit `plugins/` directly.
+
+---
+
 
 | Skill | Description |
 |-------|-------------|
