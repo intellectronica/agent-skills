@@ -1,38 +1,32 @@
 ---
 name: todoist-api
-description: This skill provides instructions for interacting with the Todoist REST API v2 using curl and jq. It covers authentication, CRUD operations for tasks/projects/sections/labels/comments, pagination handling, and requires confirmation before destructive actions. Use this skill when the user wants to read, create, update, or delete Todoist data via the API.
+description: Manage Todoist tasks, projects, sections, labels, and comments via the REST API v2 using curl and jq. Covers authentication, CRUD operations, filter queries, pagination, completed task history, and natural language due dates. Use when the user wants to read, create, update, or delete Todoist data via the API.
 ---
 
 # Todoist API Skill
 
-This skill provides procedural guidance for working with the Todoist REST API v2 via curl and jq.
+Interact with the Todoist REST API v2 via `curl` and `jq`.
 
 ## Authentication
 
-### Token Resolution
+Resolve the API token in order:
 
-Resolve the API token in this order:
-
-1. Check environment variable `TODOIST_API_TOKEN`
-2. Check if the user has provided a token in the conversation context
-3. If neither is available, use AskUserQuestion (or similar tool) to request the token from the user
-
-To verify a token exists in the environment:
+1. Environment variable `TODOIST_API_TOKEN`
+2. User-provided token in conversation
+3. Ask the user (token is at: Todoist Settings → Integrations → Developer)
 
 ```bash
 [ -n "$TODOIST_API_TOKEN" ] && echo "Token available" || echo "Token not set"
 ```
 
-### Making Authenticated Requests
-
-All requests require the Authorization header with Bearer token:
+All requests use Bearer auth:
 
 ```bash
 curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
   "https://api.todoist.com/rest/v2/ENDPOINT"
 ```
 
-For POST requests with JSON body, include Content-Type:
+POST requests add Content-Type:
 
 ```bash
 curl -s -X POST \
@@ -44,19 +38,76 @@ curl -s -X POST \
 
 ## Base URL
 
-All REST API v2 endpoints use: `https://api.todoist.com/rest/v2/`
+`https://api.todoist.com/rest/v2/`
 
 ## Confirmation Requirement
 
-**Before executing any destructive action (DELETE, close, update, archive), always ask the user for confirmation using AskUserQuestion or similar tool.** A single confirmation suffices for a logical group of related actions.
+**Before executing any destructive action (DELETE, close, update, archive), ask the user for confirmation.** A single confirmation covers a logical group of related actions.
 
-Destructive actions include:
-- Deleting tasks, projects, sections, labels, or comments
-- Closing (completing) tasks
-- Updating existing resources
-- Archiving projects
+Destructive: delete, close/complete, update, archive.
+Read-only (GET): no confirmation needed.
 
-Read-only operations (GET requests) do not require confirmation.
+## Priority Mapping
+
+⚠️ **The API and UI use inverted priority numbers:**
+
+| UI Label | API `priority` field | Filter syntax |
+|----------|---------------------|---------------|
+| P1 (urgent, red) | `4` | `p1` |
+| P2 (high, orange) | `3` | `p2` |
+| P3 (medium, blue) | `2` | `p3` |
+| P4 (normal, none) | `1` | `p4` |
+
+When creating/updating tasks, use the **API value** (4 = urgent).
+When using filter queries, use the **UI label** (`p1` = urgent).
+
+## Task Response Object
+
+The API returns tasks with this structure:
+
+```json
+{
+  "id": "123456789",
+  "content": "Task name",
+  "description": "Additional details",
+  "comment_count": 0,
+  "is_completed": false,
+  "order": 1,
+  "priority": 1,
+  "project_id": "987654321",
+  "section_id": null,
+  "parent_id": null,
+  "labels": [],
+  "creator_id": "111",
+  "created_at": "2024-01-15T10:30:00.000000Z",
+  "assignee_id": null,
+  "assigner_id": null,
+  "url": "https://app.todoist.com/app/task/123456789",
+  "duration": null,
+  "deadline": null,
+  "due": {
+    "date": "2024-01-20",
+    "string": "every monday",
+    "lang": "en",
+    "is_recurring": true
+  }
+}
+```
+
+### The `due` object
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `date` | string | `YYYY-MM-DD` or RFC3339 datetime |
+| `string` | string | Human-readable recurrence/date text |
+| `lang` | string | Language code |
+| `is_recurring` | boolean | Whether the task recurs |
+
+`due` is `null` if no due date is set.
+
+### The `deadline` field
+
+A hard deadline separate from `due`. When both are set, `due` is the soft/scheduled date and `deadline` is the hard cutoff. Can be set via `deadline_date` (YYYY-MM-DD) or `deadline_datetime` (RFC3339) when creating/updating tasks.
 
 ## Endpoints Reference
 
@@ -73,22 +124,24 @@ Read-only operations (GET requests) do not require confirmation.
 | Delete task | DELETE | `/tasks/{id}` |
 
 **Task filters** (query params for GET /tasks):
-- `project_id` - Filter by project
-- `section_id` - Filter by section
-- `label` - Filter by label name
-- `filter` - Todoist filter query (e.g., "today", "overdue")
+- `project_id` — filter by project
+- `section_id` — filter by section
+- `label` — filter by label name
+- `filter` — Todoist filter query (e.g. `today`, `overdue`). See `references/filters.md`
 
 **Task creation/update fields:**
-- `content` (required for creation) - Task text
-- `description` - Additional details
-- `project_id`, `section_id`, `parent_id` - Organisation
-- `priority` - 1 (normal) to 4 (urgent)
-- `due_string` - Natural language ("tomorrow", "every monday")
-- `due_date` - YYYY-MM-DD format
-- `due_datetime` - RFC3339 format
-- `labels` - Array of label names
-- `assignee_id` - For shared projects
-- `duration`, `duration_unit` - Estimated time
+- `content` (required for creation) — task text
+- `description` — additional details
+- `project_id`, `section_id`, `parent_id` — organization
+- `priority` — 1 (normal) to 4 (urgent). **See Priority Mapping above**
+- `due_string` — natural language ("tomorrow", "every monday")
+- `due_date` — YYYY-MM-DD
+- `due_datetime` — RFC3339
+- `deadline_date` — YYYY-MM-DD hard deadline
+- `deadline_datetime` — RFC3339 hard deadline
+- `labels` — array of label names
+- `assignee_id` — for shared projects
+- `duration`, `duration_unit` — estimated time
 
 ### Projects
 
@@ -103,12 +156,7 @@ Read-only operations (GET requests) do not require confirmation.
 | Delete project | DELETE | `/projects/{id}` |
 | List collaborators | GET | `/projects/{id}/collaborators` |
 
-**Project fields:**
-- `name` (required for creation)
-- `parent_id` - For nested projects
-- `color` - Colour name (e.g., "berry_red", "blue")
-- `is_favorite` - Boolean
-- `view_style` - "list" or "board"
+**Project fields:** `name` (required), `parent_id`, `color` (e.g. "berry_red", "blue"), `is_favorite`, `view_style` ("list" or "board")
 
 ### Sections
 
@@ -120,13 +168,7 @@ Read-only operations (GET requests) do not require confirmation.
 | Update section | POST | `/sections/{id}` |
 | Delete section | DELETE | `/sections/{id}` |
 
-**Section filters** (query params for GET):
-- `project_id` - Filter by project (recommended)
-
-**Section fields:**
-- `name` (required)
-- `project_id` (required for creation)
-- `order` - Position within project
+**Section fields:** `name` (required), `project_id` (required for creation), `order`
 
 ### Labels
 
@@ -137,15 +179,8 @@ Read-only operations (GET requests) do not require confirmation.
 | Create label | POST | `/labels` |
 | Update label | POST | `/labels/{id}` |
 | Delete label | DELETE | `/labels/{id}` |
-| List shared labels | GET | `/shared_labels` |
-| Rename shared label | POST | `/shared_labels/{name}/rename` |
-| Remove shared label | DELETE | `/shared_labels/{name}` |
 
-**Label fields:**
-- `name` (required)
-- `color` - Colour name
-- `order` - Display order
-- `is_favorite` - Boolean
+**Label fields:** `name` (required), `color`, `order`, `is_favorite`
 
 ### Comments
 
@@ -157,88 +192,44 @@ Read-only operations (GET requests) do not require confirmation.
 | Update comment | POST | `/comments/{id}` |
 | Delete comment | DELETE | `/comments/{id}` |
 
-**Comment filters** (query params for GET):
-- `task_id` - Comments on a task (required if no project_id)
-- `project_id` - Comments on a project (required if no task_id)
-
-**Comment fields:**
-- `content` (required) - Markdown supported
-- `task_id` or `project_id` (one required for creation)
+**Comment query params:** `task_id` or `project_id` (one required for listing)
+**Comment fields:** `content` (required, markdown supported), `task_id` or `project_id` (one required for creation)
 
 ## Pagination
 
-Some endpoints return paginated results. Handle pagination by checking for a `next_cursor` field in the response and making subsequent requests with the `cursor` parameter.
+**Most REST v2 endpoints (tasks, projects, sections, labels) return flat JSON arrays — no pagination needed.**
 
-### Pagination Pattern
-
-```bash
-# Initial request
-response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/ENDPOINT")
-
-# Check for more results
-next_cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-
-# If cursor exists, fetch next page
-if [ -n "$next_cursor" ]; then
-  curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-    "https://api.todoist.com/rest/v2/ENDPOINT?cursor=$next_cursor"
-fi
-```
-
-### Complete Data Retrieval Loop
-
-To retrieve all data when pagination is involved:
-
-```bash
-all_results="[]"
-cursor=""
-
-while true; do
-  if [ -z "$cursor" ]; then
-    response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-      "https://api.todoist.com/rest/v2/ENDPOINT")
-  else
-    response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-      "https://api.todoist.com/rest/v2/ENDPOINT?cursor=$cursor")
-  fi
-
-  # Merge results (adjust .items or root array based on endpoint)
-  items=$(echo "$response" | jq '.items // .')
-  all_results=$(echo "$all_results $items" | jq -s 'add')
-
-  # Check for next page
-  cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-  has_more=$(echo "$response" | jq -r '.has_more // false')
-
-  if [ "$has_more" != "true" ] || [ -z "$cursor" ]; then
-    break
-  fi
-done
-
-echo "$all_results"
-```
+Pagination with cursors applies only to specific endpoints like completed tasks (API v1). See `references/completed-tasks.md` for the cursor-based pagination pattern.
 
 ## Common Patterns
 
-### List All Tasks in a Project
-
-```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?project_id=PROJECT_ID" | jq '.'
-```
-
-### Create a Task with Due Date
+### Create a task with due date
 
 ```bash
 curl -s -X POST \
   -H "Authorization: Bearer $TODOIST_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"content": "Task name", "due_string": "tomorrow", "priority": 2}' \
+  -d '{"content": "Buy milk", "due_string": "tomorrow", "priority": 4}' \
   "https://api.todoist.com/rest/v2/tasks"
 ```
 
-### Complete a Task
+Note: `priority: 4` = urgent (P1 in UI).
+
+### Get today's tasks
+
+```bash
+curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
+  "https://api.todoist.com/rest/v2/tasks?filter=today" | jq '.'
+```
+
+### Get overdue tasks
+
+```bash
+curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
+  "https://api.todoist.com/rest/v2/tasks?filter=overdue" | jq '.'
+```
+
+### Complete a task
 
 ```bash
 curl -s -X POST \
@@ -246,34 +237,25 @@ curl -s -X POST \
   "https://api.todoist.com/rest/v2/tasks/TASK_ID/close"
 ```
 
-### Get Today's Tasks
+### List all tasks in a project
 
 ```bash
 curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today" | jq '.'
-```
-
-### Get Overdue Tasks
-
-```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=overdue" | jq '.'
+  "https://api.todoist.com/rest/v2/tasks?project_id=PROJECT_ID" | jq '.'
 ```
 
 ## Error Handling
 
-Check HTTP status codes and handle errors appropriately:
-
-- `200` - Success with response body
-- `204` - Success, no content
-- `400` - Bad request (check parameters)
-- `401` - Authentication failed (check token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Resource not found
-- `429` - Rate limited (wait and retry)
-- `5xx` - Server error (safe to retry)
-
-### Example with Error Handling
+| Code | Meaning |
+|------|---------|
+| 200 | Success with body |
+| 204 | Success, no content |
+| 400 | Bad request |
+| 401 | Auth failed |
+| 403 | Forbidden |
+| 404 | Not found |
+| 429 | Rate limited (wait + retry) |
+| 5xx | Server error (safe to retry) |
 
 ```bash
 response=$(curl -s -w "\n%{http_code}" \
@@ -293,7 +275,7 @@ fi
 
 ## Idempotency
 
-For safe retries on write operations, include the `X-Request-Id` header (max 36 characters):
+For safe retries on writes, include `X-Request-Id` (max 36 chars):
 
 ```bash
 curl -s -X POST \
@@ -304,28 +286,11 @@ curl -s -X POST \
   "https://api.todoist.com/rest/v2/tasks"
 ```
 
-Duplicate requests with the same X-Request-Id are discarded by the server.
-
 ## Completed Tasks
 
-The REST API v2 `/tasks` endpoint returns only active tasks. For completed tasks, use the Sync API or the newer unified API v1 endpoints:
-
-- `GET /tasks/completed/by_completion_date` - Retrieve by completion date
-- `GET /tasks/completed/by_due_date` - Retrieve by original due date
-
-See `references/completed-tasks.md` for details on retrieving completed task history.
+REST v2 `/tasks` returns only active tasks. For completed task history, see `references/completed-tasks.md`.
 
 ## Additional Reference
 
-For detailed information on specific topics, consult:
-- `references/completed-tasks.md` - Retrieving completed task history
-- `references/filters.md` - Todoist filter query syntax
-
-## Workflow Summary
-
-1. **Resolve token** - Environment, context, or ask user
-2. **Verify authentication** - Test with a simple GET request
-3. **Read operations** - Execute directly without confirmation
-4. **Write operations** - Ask for confirmation before executing
-5. **Handle pagination** - Loop with cursor for complete data
-6. **Parse responses** - Use jq to extract and format data
+- `references/completed-tasks.md` — completed task history (API v1 endpoints, cursor pagination)
+- `references/filters.md` — Todoist filter query syntax
