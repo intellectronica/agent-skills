@@ -134,6 +134,13 @@
       "category": "productivity"
     },
     {
+      "name": "upstash-redis-kv",
+      "source": "./plugins/upstash-redis-kv",
+      "description": "Read and write to Upstash Redis-compatible key-value store via REST API. Use when there is a need to save or retrieve key-value data, use Redis features (caching, counters, lists, sets, hashes, sorted sets, etc.) for the current interaction, or when the user explicitly asks to use Upstash or Redis.",
+      "version": "0.1.1770038631",
+      "category": "productivity"
+    },
+    {
       "name": "youtube-transcript",
       "source": "./plugins/youtube-transcript",
       "description": "Extract transcripts from YouTube videos. Use when the user asks for a transcript, subtitles, or captions of a YouTube video and provides a YouTube URL (youtube.com/watch?v=, youtu.be/, or similar). Supports output with or without timestamps.",
