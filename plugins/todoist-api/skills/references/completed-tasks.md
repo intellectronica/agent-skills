@@ -1,102 +1,68 @@
 # Retrieving Completed Tasks
 
-The REST API v2 `/tasks` endpoint returns only active (non-completed) tasks. To access completed task history, use the unified API v1 endpoints or the Sync API.
+The `td completed` command is the primary way to retrieve completed tasks.
 
-## API v1 Endpoints for Completed Tasks
+## CLI Usage
 
-### By Completion Date
-
-Retrieve tasks based on when they were completed:
+### Basic Usage
 
 ```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/api/v1/tasks/completed/by_completion_date"
+td completed                    # Today's completed tasks
+td completed --json             # JSON output
+td completed --all --json       # All completed (no limit)
 ```
 
-**Parameters:**
+### Date Range
+
+```bash
+td completed --since 2024-01-01 --until 2024-01-31
+td completed --since 2024-01-01 --json
+```
+
+### Filter by Project
+
+```bash
+td completed --project "Work" --json
+```
+
+### Options
+
+- `--since <date>` - Start date (YYYY-MM-DD), default: today
+- `--until <date>` - End date (YYYY-MM-DD), default: tomorrow
+- `--project <name>` - Filter by project name
+- `--limit <n>` - Limit number of results (default: 300)
+- `--all` - Fetch all results (no limit)
+- `--json` - Output as JSON
+- `--ndjson` - Output as newline-delimited JSON
+- `--full` - Include all fields in JSON output
+
+## Alternative: Direct API Access
+
+If you need more control or the CLI doesn't provide the required functionality, you can use the API directly.
+
+### API v1 Endpoints
+
+**By Completion Date:**
+```bash
+curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
+  "https://api.todoist.com/api/v1/tasks/completed/by_completion_date?since=2024-01-01T00:00:00Z&until=2024-01-31T23:59:59Z"
+```
+
+**By Due Date:**
+```bash
+curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
+  "https://api.todoist.com/api/v1/tasks/completed/by_due_date?since=2024-01-01T00:00:00Z"
+```
+
+### API Parameters
+
 - `since` - Start date (ISO 8601 format)
 - `until` - End date (ISO 8601 format)
-- `project_id` - Filter by project
+- `project_id` - Filter by project ID
 - `limit` - Results per page
 - `cursor` - Pagination cursor
 
-### By Due Date
-
-Retrieve completed tasks based on their original due date:
-
-```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/api/v1/tasks/completed/by_due_date"
-```
-
-**Parameters:** Same as above.
-
-## Sync API Approach
-
-For comprehensive completed task data, use the Sync API:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d 'sync_token=*&resource_types=["completed_info"]' \
-  "https://api.todoist.com/sync/v9/sync"
-```
-
-This returns completion counts per project and section, not individual completed items.
-
-## Pagination for Completed Tasks
-
-Completed task endpoints support cursor-based pagination:
-
-```bash
-# Initial request
-response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/api/v1/tasks/completed/by_completion_date?limit=100")
-
-# Extract cursor for next page
-cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-
-# Fetch next page if cursor exists
-if [ -n "$cursor" ]; then
-  curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-    "https://api.todoist.com/api/v1/tasks/completed/by_completion_date?cursor=$cursor&limit=100"
-fi
-```
-
-## Complete Retrieval Loop
-
-To fetch all completed tasks within a date range:
-
-```bash
-all_completed="[]"
-cursor=""
-since="2024-01-01T00:00:00Z"
-until="2024-12-31T23:59:59Z"
-
-while true; do
-  url="https://api.todoist.com/api/v1/tasks/completed/by_completion_date?since=$since&until=$until&limit=100"
-
-  if [ -n "$cursor" ]; then
-    url="$url&cursor=$cursor"
-  fi
-
-  response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" "$url")
-
-  items=$(echo "$response" | jq '.items // []')
-  all_completed=$(echo "$all_completed $items" | jq -s 'add')
-
-  cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-
-  if [ -z "$cursor" ]; then
-    break
-  fi
-done
-
-echo "$all_completed" | jq '.'
-```
-
-## Response Structure
+### Response Structure
 
 Completed task objects include:
 
@@ -110,8 +76,8 @@ Completed task objects include:
 }
 ```
 
-## Important Notes
+## Notes
 
 - Completed tasks are stored in history and may have limited retention based on user plan
-- The `/tasks/{id}/reopen` endpoint can restore a completed task to active status
+- Use `td task uncomplete id:xxx` to reopen a completed task
 - Recurring tasks create new instances when completed; the original remains in history

@@ -1,6 +1,14 @@
 # Todoist Filter Query Syntax
 
-The `filter` parameter on `/tasks` accepts Todoist's filter query language, enabling powerful task queries.
+The `--filter` flag on `td task list` accepts Todoist's filter query language, enabling powerful task queries.
+
+## Usage with td CLI
+
+```bash
+td task list --filter "today & p1"
+td task list --filter "overdue | today" --json
+td task list --filter "#Work & @urgent" --all
+```
 
 ## Basic Filters
 
@@ -68,69 +76,41 @@ Use logical operators to combine filters:
 | `!` | NOT | `!#Inbox` |
 | `()` | Grouping | `(today \| overdue) & p1` |
 
-## URL Encoding
-
-When using filters in curl requests, URL-encode special characters:
-
-```bash
-# today & p1
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today%20%26%20p1"
-
-# today | overdue
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today%20%7C%20overdue"
-
-# @urgent
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=%40urgent"
-```
-
-## Common Encoding Reference
-
-| Character | Encoded |
-|-----------|---------|
-| space | `%20` |
-| `&` | `%26` |
-| `\|` | `%7C` |
-| `@` | `%40` |
-| `#` | `%23` |
-| `:` | `%3A` |
-| `(` | `%28` |
-| `)` | `%29` |
-
 ## Example Queries
 
 ### High-Priority Tasks Due Soon
 
 ```bash
-# (today | overdue) & (p1 | p2)
-filter="(today%20%7C%20overdue)%20%26%20(p1%20%7C%20p2)"
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
+td task list --filter "(today | overdue) & (p1 | p2)" --json
 ```
 
 ### Unassigned Tasks in Work Project
 
 ```bash
-# #Work & !assigned
-filter="%23Work%20%26%20!assigned"
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
+td task list --filter "#Work & !assigned" --json
 ```
 
 ### Tasks with Label Due This Week
 
 ```bash
-# @waiting & 7 days
-filter="%40waiting%20%26%207%20days"
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=$filter"
+td task list --filter "@waiting & 7 days" --json
+```
+
+### All Inbox Tasks Not Started
+
+```bash
+td task list --filter "#Inbox & no date" --json
+```
+
+### Urgent Tasks Assigned to Me
+
+```bash
+td task list --filter "assigned to: me & p1" --json
 ```
 
 ## Notes
 
 - Filter queries are case-insensitive
-- Project and label names with spaces should be quoted or URL-encoded
-- The filter parameter only works with the GET `/tasks` endpoint
+- Project and label names with spaces should be quoted: `"#My Project"`
 - Complex filters may require Premium/Business plans
+- The CLI handles quoting and escaping automatically (unlike raw API calls)
