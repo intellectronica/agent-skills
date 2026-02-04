@@ -1,331 +1,418 @@
 ---
 name: todoist-api
-description: This skill provides instructions for interacting with the Todoist REST API v2 using curl and jq. It covers authentication, CRUD operations for tasks/projects/sections/labels/comments, pagination handling, and requires confirmation before destructive actions. Use this skill when the user wants to read, create, update, or delete Todoist data via the API.
+description: This skill provides instructions for interacting with Todoist using the td CLI tool. It covers CRUD operations for tasks/projects/sections/labels/comments, and requires confirmation before destructive actions. Use this skill when the user wants to read, create, update, or delete Todoist data.
 ---
 
-# Todoist API Skill
+# Todoist CLI Skill
 
-This skill provides procedural guidance for working with the Todoist REST API v2 via curl and jq.
+This skill provides procedural guidance for working with Todoist using the `td` CLI tool.
 
-## Authentication
+## Prerequisites
 
-### Token Resolution
-
-Resolve the API token in this order:
-
-1. Check environment variable `TODOIST_API_TOKEN`
-2. Check if the user has provided a token in the conversation context
-3. If neither is available, use AskUserQuestion (or similar tool) to request the token from the user
-
-To verify a token exists in the environment:
+The `td` CLI must be installed and authenticated. Verify with:
 
 ```bash
-[ -n "$TODOIST_API_TOKEN" ] && echo "Token available" || echo "Token not set"
+td auth status
 ```
 
-### Making Authenticated Requests
+If td is not installed or not authenticated:
+- **Not installed**: Tell the user to install with `npm install -g @doist/todoist-cli`
+- **Not authenticated**: Tell the user to run `td auth login` to authenticate via OAuth
 
-All requests require the Authorization header with Bearer token:
+## Output Formats for Agents
 
-```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/ENDPOINT"
-```
-
-For POST requests with JSON body, include Content-Type:
-
-```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"key": "value"}' \
-  "https://api.todoist.com/rest/v2/ENDPOINT"
-```
-
-## Base URL
-
-All REST API v2 endpoints use: `https://api.todoist.com/rest/v2/`
+For machine-readable output, use these flags:
+- `--json` - Output as JSON array
+- `--ndjson` - Output as newline-delimited JSON (one object per line)
+- `--full` - Include all fields in JSON output (default shows essential fields only)
 
 ## Confirmation Requirement
 
-**Before executing any destructive action (DELETE, close, update, archive), always ask the user for confirmation using AskUserQuestion or similar tool.** A single confirmation suffices for a logical group of related actions.
+**Before executing any destructive action, always ask the user for confirmation using AskUserQuestion or similar tool.** A single confirmation suffices for a logical group of related actions.
 
 Destructive actions include:
 - Deleting tasks, projects, sections, labels, or comments
-- Closing (completing) tasks
+- Completing tasks
 - Updating existing resources
 - Archiving projects
 
-Read-only operations (GET requests) do not require confirmation.
+Read-only operations do not require confirmation.
 
-## Endpoints Reference
+## Quick Commands
 
-### Tasks
+| Command | Description |
+|---------|-------------|
+| `td add "text"` | Quick add with natural language parsing |
+| `td today` | Tasks due today and overdue |
+| `td upcoming [days]` | Tasks due in next N days (default: 7) |
+| `td inbox` | Tasks in Inbox |
+| `td completed` | Recently completed tasks |
 
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| List active tasks | GET | `/tasks` |
-| Get task | GET | `/tasks/{id}` |
-| Create task | POST | `/tasks` |
-| Update task | POST | `/tasks/{id}` |
-| Close task | POST | `/tasks/{id}/close` |
-| Reopen task | POST | `/tasks/{id}/reopen` |
-| Delete task | DELETE | `/tasks/{id}` |
-
-**Task filters** (query params for GET /tasks):
-- `project_id` - Filter by project
-- `section_id` - Filter by section
-- `label` - Filter by label name
-- `filter` - Todoist filter query (e.g., "today", "overdue")
-
-**Task creation/update fields:**
-- `content` (required for creation) - Task text
-- `description` - Additional details
-- `project_id`, `section_id`, `parent_id` - Organisation
-- `priority` - 1 (normal) to 4 (urgent)
-- `due_string` - Natural language ("tomorrow", "every monday")
-- `due_date` - YYYY-MM-DD format
-- `due_datetime` - RFC3339 format
-- `labels` - Array of label names
-- `assignee_id` - For shared projects
-- `duration`, `duration_unit` - Estimated time
-
-### Projects
-
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| List projects | GET | `/projects` |
-| Get project | GET | `/projects/{id}` |
-| Create project | POST | `/projects` |
-| Update project | POST | `/projects/{id}` |
-| Archive project | POST | `/projects/{id}/archive` |
-| Unarchive project | POST | `/projects/{id}/unarchive` |
-| Delete project | DELETE | `/projects/{id}` |
-| List collaborators | GET | `/projects/{id}/collaborators` |
-
-**Project fields:**
-- `name` (required for creation)
-- `parent_id` - For nested projects
-- `color` - Colour name (e.g., "berry_red", "blue")
-- `is_favorite` - Boolean
-- `view_style` - "list" or "board"
-
-### Sections
-
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| List sections | GET | `/sections` |
-| Get section | GET | `/sections/{id}` |
-| Create section | POST | `/sections` |
-| Update section | POST | `/sections/{id}` |
-| Delete section | DELETE | `/sections/{id}` |
-
-**Section filters** (query params for GET):
-- `project_id` - Filter by project (recommended)
-
-**Section fields:**
-- `name` (required)
-- `project_id` (required for creation)
-- `order` - Position within project
-
-### Labels
-
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| List personal labels | GET | `/labels` |
-| Get label | GET | `/labels/{id}` |
-| Create label | POST | `/labels` |
-| Update label | POST | `/labels/{id}` |
-| Delete label | DELETE | `/labels/{id}` |
-| List shared labels | GET | `/shared_labels` |
-| Rename shared label | POST | `/shared_labels/{name}/rename` |
-| Remove shared label | DELETE | `/shared_labels/{name}` |
-
-**Label fields:**
-- `name` (required)
-- `color` - Colour name
-- `order` - Display order
-- `is_favorite` - Boolean
-
-### Comments
-
-| Operation | Method | Endpoint |
-|-----------|--------|----------|
-| List comments | GET | `/comments` |
-| Get comment | GET | `/comments/{id}` |
-| Create comment | POST | `/comments` |
-| Update comment | POST | `/comments/{id}` |
-| Delete comment | DELETE | `/comments/{id}` |
-
-**Comment filters** (query params for GET):
-- `task_id` - Comments on a task (required if no project_id)
-- `project_id` - Comments on a project (required if no task_id)
-
-**Comment fields:**
-- `content` (required) - Markdown supported
-- `task_id` or `project_id` (one required for creation)
-
-## Pagination
-
-Some endpoints return paginated results. Handle pagination by checking for a `next_cursor` field in the response and making subsequent requests with the `cursor` parameter.
-
-### Pagination Pattern
+### Quick Add Examples
 
 ```bash
-# Initial request
-response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/ENDPOINT")
-
-# Check for more results
-next_cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-
-# If cursor exists, fetch next page
-if [ -n "$next_cursor" ]; then
-  curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-    "https://api.todoist.com/rest/v2/ENDPOINT?cursor=$next_cursor"
-fi
+td add "Buy milk tomorrow p1 #Shopping"
+td add "Call dentist every monday @health"
+td add "Review PR #Work /Code Review"
 ```
 
-### Complete Data Retrieval Loop
+The quick add parser supports:
+- Due dates: `tomorrow`, `next monday`, `Jan 15`
+- Priority: `p1` (urgent) through `p4` (normal)
+- Project: `#ProjectName`
+- Section: `/SectionName`
+- Labels: `@label1 @label2`
 
-To retrieve all data when pagination is involved:
+## Tasks
+
+### List Tasks
 
 ```bash
-all_results="[]"
-cursor=""
-
-while true; do
-  if [ -z "$cursor" ]; then
-    response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-      "https://api.todoist.com/rest/v2/ENDPOINT")
-  else
-    response=$(curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-      "https://api.todoist.com/rest/v2/ENDPOINT?cursor=$cursor")
-  fi
-
-  # Merge results (adjust .items or root array based on endpoint)
-  items=$(echo "$response" | jq '.items // .')
-  all_results=$(echo "$all_results $items" | jq -s 'add')
-
-  # Check for next page
-  cursor=$(echo "$response" | jq -r '.next_cursor // empty')
-  has_more=$(echo "$response" | jq -r '.has_more // false')
-
-  if [ "$has_more" != "true" ] || [ -z "$cursor" ]; then
-    break
-  fi
-done
-
-echo "$all_results"
+td task list [options]
 ```
 
-## Common Patterns
+**Filters:**
+- `--project <name>` - Filter by project name or id:xxx
+- `--label <name>` - Filter by label (comma-separated for multiple)
+- `--priority <p1-p4>` - Filter by priority
+- `--due <date>` - Filter by due date (today, overdue, or YYYY-MM-DD)
+- `--filter <query>` - Raw Todoist filter query
+- `--assignee <ref>` - Filter by assignee (me or id:xxx)
+- `--workspace <name>` - Filter to workspace
+- `--personal` - Filter to personal projects only
 
-### List All Tasks in a Project
+**Output:**
+```bash
+td task list --json                    # JSON array
+td task list --project "Work" --json   # Filtered JSON
+td task list --all --json              # All tasks (no limit)
+```
+
+### View Task Details
 
 ```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?project_id=PROJECT_ID" | jq '.'
+td task view <ref>              # Human-readable
+td task view <ref> --json       # JSON output
 ```
 
-### Create a Task with Due Date
+The ref can be a task name, partial match, or `id:xxx`.
+
+### Create Task
+
+**Quick add (natural language):**
+```bash
+td add "Task text with #Project @label tomorrow p2"
+```
+
+**Explicit flags:**
+```bash
+td task add --content "Task text" \
+  --project "Work" \
+  --due "tomorrow" \
+  --priority p2 \
+  --labels "urgent,review" \
+  --description "Additional details"
+```
+
+**Options:**
+- `--content <text>` - Task content (required)
+- `--due <date>` - Due date (natural language or YYYY-MM-DD)
+- `--deadline <date>` - Deadline date (YYYY-MM-DD)
+- `--priority <p1-p4>` - Priority level
+- `--project <name>` - Project name or id:xxx
+- `--section <id>` - Section ID
+- `--labels <a,b>` - Comma-separated labels
+- `--parent <ref>` - Parent task for subtask
+- `--description <text>` - Task description
+- `--assignee <ref>` - Assign to user (name, email, id:xxx, or "me")
+- `--duration <time>` - Duration (e.g., 30m, 1h, 2h15m)
+
+### Update Task
 
 ```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"content": "Task name", "due_string": "tomorrow", "priority": 2}' \
-  "https://api.todoist.com/rest/v2/tasks"
+td task update <ref> --content "New content" --due "next week"
 ```
 
-### Complete a Task
+**Options:**
+- `--content <text>` - New content
+- `--due <date>` - New due date
+- `--deadline <date>` - Deadline date
+- `--no-deadline` - Remove deadline
+- `--priority <p1-p4>` - New priority
+- `--labels <a,b>` - Replace labels
+- `--description <text>` - New description
+- `--assignee <ref>` - Assign to user
+- `--unassign` - Remove assignee
+- `--duration <time>` - Duration
+
+### Complete Task
 
 ```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks/TASK_ID/close"
+td task complete <ref>
 ```
 
-### Get Today's Tasks
+### Reopen Task
 
 ```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=today" | jq '.'
+td task uncomplete id:xxx
 ```
 
-### Get Overdue Tasks
+Note: Uncomplete requires the task ID (id:xxx format).
+
+### Delete Task
 
 ```bash
-curl -s -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks?filter=overdue" | jq '.'
+td task delete <ref>
 ```
 
-## Error Handling
-
-Check HTTP status codes and handle errors appropriately:
-
-- `200` - Success with response body
-- `204` - Success, no content
-- `400` - Bad request (check parameters)
-- `401` - Authentication failed (check token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Resource not found
-- `429` - Rate limited (wait and retry)
-- `5xx` - Server error (safe to retry)
-
-### Example with Error Handling
+### Move Task
 
 ```bash
-response=$(curl -s -w "\n%{http_code}" \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  "https://api.todoist.com/rest/v2/tasks")
-
-http_code=$(echo "$response" | tail -1)
-body=$(echo "$response" | sed '$d')
-
-if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
-  echo "$body" | jq '.'
-else
-  echo "Error: HTTP $http_code"
-  echo "$body"
-fi
+td task move <ref> --project "New Project"
+td task move <ref> --section <section-id>
+td task move <ref> --parent <task-ref>
 ```
 
-## Idempotency
-
-For safe retries on write operations, include the `X-Request-Id` header (max 36 characters):
+### Open in Browser
 
 ```bash
-curl -s -X POST \
-  -H "Authorization: Bearer $TODOIST_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -H "X-Request-Id: $(uuidgen)" \
-  -d '{"content": "New task"}' \
-  "https://api.todoist.com/rest/v2/tasks"
+td task browse <ref>
 ```
 
-Duplicate requests with the same X-Request-Id are discarded by the server.
+## Projects
+
+### List Projects
+
+```bash
+td project list                     # Human-readable tree
+td project list --json              # JSON array
+td project list --personal --json   # Personal projects only
+```
+
+### View Project
+
+```bash
+td project view <ref>
+td project view <ref> --json
+```
+
+### Create Project
+
+```bash
+td project create --name "Project Name" \
+  --color "blue" \
+  --parent "Parent Project" \
+  --view-style board \
+  --favorite
+```
+
+**Options:**
+- `--name <name>` - Project name (required)
+- `--color <color>` - Colour name
+- `--parent <ref>` - Parent project for nesting
+- `--view-style <style>` - "list" or "board"
+- `--favorite` - Mark as favourite
+
+### Update Project
+
+```bash
+td project update <ref> --name "New Name" --color "red"
+```
+
+### Archive/Unarchive Project
+
+```bash
+td project archive <ref>
+td project unarchive <ref>
+```
+
+### Delete Project
+
+```bash
+td project delete <ref>
+```
+
+Note: Project must have no uncompleted tasks.
+
+### List Collaborators
+
+```bash
+td project collaborators <ref>
+```
+
+## Sections
+
+### List Sections
+
+```bash
+td section list <project>           # Human-readable
+td section list <project> --json    # JSON array
+```
+
+### Create Section
+
+```bash
+td section create --name "Section Name" --project "Project Name"
+```
+
+### Update Section
+
+```bash
+td section update <id> --name "New Name"
+```
+
+### Delete Section
+
+```bash
+td section delete <id>
+```
+
+## Labels
+
+### List Labels
+
+```bash
+td label list              # Human-readable
+td label list --json       # JSON array
+```
+
+### Create Label
+
+```bash
+td label create --name "label-name" --color "green" --favorite
+```
+
+### Update Label
+
+```bash
+td label update <ref> --name "new-name" --color "blue"
+```
+
+### Delete Label
+
+```bash
+td label delete <name>
+```
+
+## Comments
+
+### List Comments
+
+```bash
+td comment list <task-ref>                    # Comments on task
+td comment list <project-ref> --project       # Comments on project
+```
+
+### Add Comment
+
+```bash
+td comment add <task-ref> --content "Comment text"
+td comment add <project-ref> --project --content "Comment text"
+```
+
+### Update Comment
+
+```bash
+td comment update <id> --content "Updated text"
+```
+
+### Delete Comment
+
+```bash
+td comment delete <id>
+```
+
+## Reminders
+
+### List Reminders
+
+```bash
+td reminder list <task-ref>
+```
+
+### Add Reminder
+
+```bash
+td reminder add <task-ref> --due "tomorrow 9am"
+```
+
+### Delete Reminder
+
+```bash
+td reminder delete <id>
+```
+
+## Filters
+
+### List Saved Filters
+
+```bash
+td filter list --json
+```
+
+### Show Tasks Matching Filter
+
+```bash
+td filter show <filter-ref> --json
+```
+
+### Create Filter
+
+```bash
+td filter create --name "My Filter" --query "today & p1"
+```
 
 ## Completed Tasks
 
-The REST API v2 `/tasks` endpoint returns only active tasks. For completed tasks, use the Sync API or the newer unified API v1 endpoints:
+```bash
+td completed                              # Today's completed tasks
+td completed --since 2024-01-01           # Since specific date
+td completed --project "Work" --json      # Filtered JSON output
+td completed --all --json                 # All completed (no limit)
+```
 
-- `GET /tasks/completed/by_completion_date` - Retrieve by completion date
-- `GET /tasks/completed/by_due_date` - Retrieve by original due date
+**Options:**
+- `--since <date>` - Start date (YYYY-MM-DD), default: today
+- `--until <date>` - End date (YYYY-MM-DD), default: tomorrow
+- `--project <name>` - Filter by project
 
-See `references/completed-tasks.md` for details on retrieving completed task history.
+## Activity and Stats
+
+```bash
+td activity                  # Recent activity
+td stats                     # Productivity stats and karma
+```
+
+## Pagination
+
+For large result sets, use `--all` to fetch everything, or handle pagination with cursors:
+
+```bash
+# First page
+result=$(td task list --json --limit 50)
+
+# If there's a next_cursor in the response, continue
+cursor=$(echo "$result" | jq -r '.[-1].id // empty')
+td task list --json --limit 50 --cursor "$cursor"
+```
+
+## Reference Resolution
+
+The `<ref>` parameter in commands accepts:
+- Task/project/label name (partial match supported)
+- `id:xxx` for exact ID match
+- Numeric ID (interpreted as id:xxx)
 
 ## Additional Reference
 
 For detailed information on specific topics, consult:
-- `references/completed-tasks.md` - Retrieving completed task history
-- `references/filters.md` - Todoist filter query syntax
+- `references/completed-tasks.md` - Alternative methods for completed task history via API
+- `references/filters.md` - Todoist filter query syntax for `--filter` flag
 
 ## Workflow Summary
 
-1. **Resolve token** - Environment, context, or ask user
-2. **Verify authentication** - Test with a simple GET request
-3. **Read operations** - Execute directly without confirmation
-4. **Write operations** - Ask for confirmation before executing
-5. **Handle pagination** - Loop with cursor for complete data
-6. **Parse responses** - Use jq to extract and format data
+1. **Verify authentication** - `td auth status`
+2. **Read operations** - Execute directly without confirmation
+3. **Write operations** - Ask for confirmation before executing
+4. **Use JSON output** - Add `--json` flag for machine-readable data
+5. **Handle large datasets** - Use `--all` or pagination with `--cursor`
