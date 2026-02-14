@@ -28,19 +28,26 @@ If the user confirms:
 The commit instructions to add:
 
 ```markdown
-## Git Workflow
+## Git Workflow — CRITICAL, MANDATORY, NO EXCEPTIONS
 
-- Always commit your changes when you have completed a task or reached a logical stopping point
-- Use clear, descriptive commit messages that explain what was done and why
-- Ensure the working directory is clean (all changes committed) before ending your session
+> **THIS IS NOT OPTIONAL.** Every agent operating in this repository MUST follow this workflow after every change, no matter how small. There are ZERO exceptions to this rule. Skipping a commit is never acceptable. If you have made any change to any file, you MUST commit before moving on.
+
+### Rules
+
+1. **ALWAYS commit your changes immediately after completing a task or reaching any logical stopping point.** Do not defer. Do not batch. Do not skip.
+2. **ALWAYS commit before ending your session.** The working directory MUST be clean (all changes committed) when you finish. Leaving uncommitted changes is a failure state.
+3. **Use clear, descriptive commit messages** that explain what was done and why.
+4. **If in doubt, commit.** It is always better to have one commit too many than one too few.
+
+### To be absolutely clear
+
+- "I'll commit later" — **No. Commit now.**
+- "It's just a small change" — **Commit it.**
+- "I'm about to make another change" — **Commit the current one first.**
+- "The user didn't ask me to commit" — **Irrelevant. Commit anyway.**
 ```
 
-After creating or updating `AGENTS.md`:
-
-1. Check if `CLAUDE.md` exists in the current directory
-2. If it doesn't exist, create it with just `@AGENTS.md` followed by a newline
-3. If it exists but doesn't already have `@AGENTS.md` at the top, prepend `@AGENTS.md` followed by a newline to the existing content
-4. Commit both files together with an appropriate message
+After creating or updating `AGENTS.md`, commit it with an appropriate message.
 
 ### Step 3: Gitignore Configuration
 

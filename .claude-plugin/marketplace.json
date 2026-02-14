@@ -53,7 +53,7 @@
       "name": "here-be-git",
       "source": "./plugins/here-be-git",
       "description": "Initialise a git repository with optional agent commit instructions and .gitignore. Use when users say \"here be git\", \"init git\", \"initialise git\", or otherwise indicate they want to set up version control in the current directory.",
-      "version": "0.1.1768936949",
+      "version": "0.1.1771067284",
       "category": "development"
     },
     {
