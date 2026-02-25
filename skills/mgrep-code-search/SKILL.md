@@ -1,6 +1,6 @@
 ---
 name: mgrep-code-search
-description: Semantic code search using mgrep for efficient codebase exploration. This skill should be used when searching or exploring codebases with more than 30 non-gitignored files and/or nested directory structures. It provides natural language semantic search that complements traditional grep/ripgrep for finding features, understanding intent, and exploring unfamiliar code.
+description: Find functions by description, locate implementations, and discover related code patterns using mgrep semantic search. Use when searching or exploring codebases with more than 30 non-gitignored files and/or nested directory structures. Complements traditional grep/ripgrep by enabling natural language queries to find code, search for functions, look for implementations, or understand where and how features are built in unfamiliar codebases.
 ---
 
 # mgrep Code Search
@@ -104,6 +104,12 @@ Configure defaults via environment variables:
 | `MGREP_CONTENT` | Enable content display (1/true) |
 | `MGREP_ANSWER` | Enable AI synthesis (1/true) |
 | `MGREP_SYNC` | Pre-search sync (1/true) |
+
+## Troubleshooting
+
+- **No results**: verify the watcher is running (`bunx @mixedbread/mgrep watch`), try broader queries, or use `-s` to force a sync before searching
+- **Poor relevance**: narrow the search path, increase `-m` for more candidates, or try rephrasing the query
+- **Indexing failure**: check disk space and ensure the repo is a valid git directory; delete `.mgrep/` and re-run `watch` to rebuild
 
 ## Important Notes
 

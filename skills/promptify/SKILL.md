@@ -40,6 +40,26 @@ Rewrite the user's request as a clear, specific, and complete prompt that guides
 - Do not add or invent information not present in the input
 - Do not include unnecessary complexity or verbosity
 
+## Example
+
+**User request**: "write me a landing page for my saas product"
+
+**Promptified output**:
+
+> Write a responsive landing page for a SaaS product.
+>
+> ## Requirements
+> - **Hero section** with headline, subheadline, and primary CTA button
+> - **Features section** with 3–4 feature cards, each with an icon placeholder, title, and one-sentence description
+> - **Pricing section** with at least two tier cards (e.g., Free and Pro)
+> - **Footer** with placeholder links for Terms, Privacy, and Contact
+>
+> ## Technical constraints
+> - Use semantic HTML5 elements
+> - Style with a single CSS file (no frameworks)
+> - Mobile-first responsive layout using CSS Grid or Flexbox
+> - Use placeholder text and images where real content is unavailable
+
 ## Output
 
 Provide only the final prompt as markdown, without additional commentary or explanation.

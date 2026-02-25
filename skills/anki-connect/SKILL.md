@@ -1,6 +1,6 @@
 ---
 name: anki-connect
-description: This skill is for interacting with Anki through AnkiConnect, and should be used whenever a user asks to interact with Anki, including to read or modify decks, notes, cards, models, media, or sync operations.
+description: Create flashcards, search notes, import/export decks, manage tags, upload media, and sync collections via the AnkiConnect local API. Use when the user asks to interact with Anki, manage flashcards, study with spaced repetition, review card schedules, memorize content, or perform any deck, note, card, or model operation through AnkiConnect.
 ---
 
 # AnkiConnect

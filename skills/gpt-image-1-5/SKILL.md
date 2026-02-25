@@ -33,32 +33,11 @@ uv run ~/.claude/skills/gpt-image-1-5/scripts/generate_image.py --prompt "what t
 
 ## Parameters
 
-### Quality Options
-- **low** - Fastest generation, lower quality
-- **medium** (default) - Balanced quality and speed
-- **high** - Best quality, slower generation
-
-Map user requests:
-- No mention of quality -> `medium`
-- "quick", "fast", "draft" -> `low`
-- "high quality", "best", "detailed", "high-res" -> `high`
-
-### Size Options
-- **1024x1024** (default) - Square format
-- **1024x1536** - Portrait format
-- **1536x1024** - Landscape format
-- **auto** - Let the model decide based on prompt
-
-Map user requests:
-- No mention of size -> `1024x1024`
-- "square" -> `1024x1024`
-- "portrait", "vertical", "tall" -> `1024x1536`
-- "landscape", "horizontal", "wide" -> `1536x1024`
-
-### Background Options (generation only)
-- **auto** (default) - Model decides
-- **transparent** - Transparent background (PNG/WebP output)
-- **opaque** - Solid background
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `--quality` | `low`, `medium`, `high` | `medium` |
+| `--size` | `1024x1024`, `1024x1536` (portrait), `1536x1024` (landscape), `auto` | `1024x1024` |
+| `--background` | `auto`, `transparent`, `opaque` | `auto` (generation only) |
 
 ## API Key
 
@@ -70,20 +49,9 @@ If neither is available, the script exits with an error message.
 
 ## Filename Generation
 
-Generate filenames with the pattern: `yyyy-mm-dd-hh-mm-ss-name.png`
+Pattern: `yyyy-mm-dd-hh-mm-ss-descriptive-name.png`
 
-**Format:** `{timestamp}-{descriptive-name}.png`
-- Timestamp: Current date/time in format `yyyy-mm-dd-hh-mm-ss` (24-hour format)
-- Name: Descriptive lowercase text with hyphens
-- Keep the descriptive part concise (1-5 words typically)
-- Use context from user's prompt or conversation
-- If unclear, use random identifier (e.g., `x9k2`, `a7b3`)
-
-Examples:
-- Prompt "A serene Japanese garden" -> `2025-12-17-14-23-05-japanese-garden.png`
-- Prompt "sunset over mountains" -> `2025-12-17-15-30-12-sunset-mountains.png`
-- Prompt "create an image of a robot" -> `2025-12-17-16-45-33-robot.png`
-- Unclear context -> `2025-12-17-17-12-48-x9k2.png`
+Example: `2025-12-17-14-23-05-japanese-garden.png`. Keep the descriptive part concise (1–5 hyphenated words from the prompt). If unclear, use a random identifier.
 
 ## Image Editing
 
@@ -117,6 +85,14 @@ Preserve user's creative intent in both cases.
 - Saves PNG to current directory (or specified path if filename includes directory)
 - Script outputs the full path to the generated image
 - **Do not read the image back** - just inform the user of the saved path
+- Verify the output file exists before confirming success to the user
+
+## Error Handling
+
+- **Missing API key**: script exits with an error — prompt the user to set `OPENAI_API_KEY`
+- **Rate limit / 429**: wait and retry once after a few seconds
+- **Invalid image format**: ensure input images are PNG or JPEG; convert if necessary before passing
+- **Script failure**: check stderr output and report the error message to the user
 
 ## Examples
 

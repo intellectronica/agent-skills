@@ -23,66 +23,35 @@ uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "edit
 
 **Important:** Always run from the user's current working directory so images are saved where the user is working, not in the skill directory.
 
-## Resolution Options
+## Parameters
 
-The Gemini 3 Pro Image API supports three resolutions (uppercase K required):
-
-- **1K** (default) - ~1024px resolution
-- **2K** - ~2048px resolution
-- **4K** - ~4096px resolution
-
-Map user requests to API parameters:
-- No mention of resolution → `1K`
-- "low resolution", "1080", "1080p", "1K" → `1K`
-- "2K", "2048", "normal", "medium resolution" → `2K`
-- "high resolution", "high-res", "hi-res", "4K", "ultra" → `4K`
-
-## API Key
-
-The script checks for API key in this order:
-1. `--api-key` argument (use if user provided key in chat)
-2. `GEMINI_API_KEY` environment variable
-
-If neither is available, the script exits with an error message.
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `--resolution` | `1K` (~1024px), `2K` (~2048px), `4K` (~4096px) | `1K` |
+| `--api-key` | API key string | Falls back to `GEMINI_API_KEY` env var |
 
 ## Filename Generation
 
-Generate filenames with the pattern: `yyyy-mm-dd-hh-mm-ss-name.png`
+Pattern: `yyyy-mm-dd-hh-mm-ss-descriptive-name.png`
 
-**Format:** `{timestamp}-{descriptive-name}.png`
-- Timestamp: Current date/time in format `yyyy-mm-dd-hh-mm-ss` (24-hour format)
-- Name: Descriptive lowercase text with hyphens
-- Keep the descriptive part concise (1-5 words typically)
-- Use context from user's prompt or conversation
-- If unclear, use random identifier (e.g., `x9k2`, `a7b3`)
+Example: `2025-11-23-14-23-05-japanese-garden.png`. Keep the descriptive part concise (1–5 hyphenated words from the prompt). If unclear, use a random identifier.
 
-Examples:
-- Prompt "A serene Japanese garden" → `2025-11-23-14-23-05-japanese-garden.png`
-- Prompt "sunset over mountains" → `2025-11-23-15-30-12-sunset-mountains.png`
-- Prompt "create an image of a robot" → `2025-11-23-16-45-33-robot.png`
-- Unclear context → `2025-11-23-17-12-48-x9k2.png`
+## Workflow
 
-## Image Editing
+1. **Determine mode**: generation (no input image) or editing (`--input-image` provided)
+2. **Build command**: set `--prompt`, `--filename`, and optional `--resolution`/`--input-image`
+3. **Execute**: run the script from the user's working directory
+4. **Validate**: verify the output file exists (`ls` or `stat`) before confirming to the user
+5. **Report**: inform the user of the saved file path — do not read the image back
 
-When the user wants to modify an existing image:
-1. Check if they provide an image path or reference an image in the current directory
-2. Use `--input-image` parameter with the path to the image
-3. The prompt should contain editing instructions (e.g., "make the sky more dramatic", "remove the person", "change to cartoon style")
-4. Common editing tasks: add/remove elements, change style, adjust colors, blur background, etc.
+**Prompt handling**: pass the user's description as-is to `--prompt`. For editing, use editing instructions (e.g., "make the sky more dramatic"). Preserve user intent.
 
-## Prompt Handling
+## Error Handling
 
-**For generation:** Pass user's image description as-is to `--prompt`. Only rework if clearly insufficient.
-
-**For editing:** Pass editing instructions in `--prompt` (e.g., "add a rainbow in the sky", "make it look like a watercolor painting")
-
-Preserve user's creative intent in both cases.
-
-## Output
-
-- Saves PNG to current directory (or specified path if filename includes directory)
-- Script outputs the full path to the generated image
-- **Do not read the image back** - just inform the user of the saved path
+- **Missing API key**: script exits with an error — prompt the user to set `GEMINI_API_KEY`
+- **Rate limit / 429**: wait and retry once after a few seconds
+- **Invalid image format**: ensure input images are PNG or JPEG; convert if necessary
+- **Script failure**: check stderr output and report the error message to the user
 
 ## Examples
 

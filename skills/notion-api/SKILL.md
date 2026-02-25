@@ -1,10 +1,10 @@
 ---
 name: notion-api
 description: >
-  This skill provides comprehensive instructions for interacting with the Notion API via REST calls.
-  This skill should be used whenever the user asks to interact with Notion, including reading, creating,
-  updating, or deleting pages, databases, blocks, comments, or any other Notion content. The skill
-  covers authentication, all available endpoints, pagination, error handling, and best practices.
+  Create, read, update, and delete pages, databases, blocks, and comments in Notion workspaces via the REST API.
+  Use when the user asks to interact with Notion, manage their workspace, query a Notion database, add pages,
+  update content blocks, post comments, or organise notes. Covers authentication, all endpoints, pagination,
+  and error handling.
 ---
 
 # Notion API Skill
@@ -45,34 +45,9 @@ curl -s "https://api.notion.com/v1/users/me" \
 
 - **Base URL**: `https://api.notion.com`
 - **API Version**: `2025-09-03` (required header)
-- **Data Format**: JSON for all request/response bodies
-- **IDs**: UUIDv4 format (dashes optional in requests)
-- **Timestamps**: ISO 8601 format (`2020-08-12T02:12:33.231Z`)
-- **Property Names**: `snake_case`
 - **Empty Values**: Use `null` instead of empty strings
-
-## Rate Limits
-
-- **Average**: 3 requests per second per integration
-- **Bursts**: Brief bursts above this limit are allowed
-- **Rate Limited Response**: HTTP 429 with `Retry-After` header
-- **Strategy**: Implement exponential backoff when receiving 429 responses
-
-## Request Size Limits
-
-| Type | Limit |
-|------|-------|
-| Maximum block elements per payload | 1000 |
-| Maximum payload size | 500KB |
-| Rich text content | 2000 characters |
-| URLs | 2000 characters |
-| Equations | 1000 characters |
-| Email addresses | 200 characters |
-| Phone numbers | 200 characters |
-| Multi-select options | 100 items |
-| Relations | 100 related pages |
-| People mentions | 100 users |
-| Block arrays per request | 100 elements |
+- **Rate Limit**: ~3 req/s per integration; use exponential backoff on 429 responses
+- **Block arrays per request**: 100 elements max
 
 ## Confirmation for Destructive Operations
 

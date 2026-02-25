@@ -1,6 +1,6 @@
 ---
 name: beautiful-mermaid
-description: Render Mermaid diagrams as SVG and PNG using the Beautiful Mermaid library. Use when the user asks to render a Mermaid diagram.
+description: Render Mermaid diagrams as SVG and PNG images using the Beautiful Mermaid library with theme support. Use when the user asks to render a Mermaid diagram, create a flowchart, generate a sequence diagram, visualise a graph, convert .mmd files to images, or produce any class, state, ER, or Gantt diagram as an image.
 ---
 
 # Beautiful Mermaid Diagram Rendering
