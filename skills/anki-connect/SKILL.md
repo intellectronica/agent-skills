@@ -178,6 +178,21 @@ Replace the empty array with the result of the previous action when chaining; in
 
 - Action: `sync`
 
+## MathJax and Template Rendering
+
+When adding or updating notes that contain mathematical expressions, treat formula rendering as a separate concern from the field text itself.
+
+- Prefer Anki-safe MathJax syntax by default:
+- Use `\(...\)` for inline math.
+- Use `\[...\]` for display math.
+- Do not assume `$$...$$` will render correctly in every note type or template, even if the user says Anki supports it.
+- After adding or updating formula-heavy notes, verify whether the target note type/template actually renders MathJax as expected.
+- If formulas do not render, do not assume the field content is wrong. Check the note type's front/back template and styling first, especially for interactive templates with custom HTML/JS.
+- When troubleshooting rendering issues, distinguish between:
+- content-format problems (for example, wrong delimiters or escaping), and
+- template/render-pipeline problems (for example, template structure, JavaScript interference, or MathJax not being applied to the rendered node).
+- If the user wants formulas to display cleanly in Anki, prefer rewriting the note fields into stable MathJax syntax instead of leaving ambiguous plaintext formulas in the answer or explanation.
+
 ## Search Syntax Quick Notes (for `findNotes`/`findCards`)
 
 - Separate terms by spaces; terms are ANDed by default.
