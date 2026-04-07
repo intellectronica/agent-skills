@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,4 +35,5 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git add README.md
           git diff --staged --quiet || git commit -m "Update skills table in README"
+          git pull --rebase  # Handle concurrent pushes
           git push
