@@ -1,6 +1,6 @@
 ---
 name: nano-banana-pro
-description: Generate and edit images using Google's Nano Banana Pro (Gemini 3 Pro Image) API. Use when the user asks to generate, create, edit, modify, change, alter, or update images. Also use when user references an existing image file and asks to modify it in any way (e.g., "modify this image", "change the background", "replace X with Y"). Supports both text-to-image generation and image-to-image editing with configurable resolution (1K default, 2K, or 4K for high resolution). DO NOT read the image file first - use this skill directly with the --input-image parameter.
+description: Generate and edit images using Google's Nano Banana Pro (Gemini 3 Pro Image) API. Use when the user asks to generate, create, edit, modify, change, alter, or update images. Also use when user references an existing image file and asks to modify it in any way (e.g., "modify this image", "change the background", "replace X with Y"). Supports both text-to-image generation and image-to-image editing with configurable resolution (1K default, 2K, or 4K for high resolution). Supports multiple input images (up to 14) for combining, compositing, or referencing elements from several sources. DO NOT read the image file first - use this skill directly with the --input-image parameter.
 ---
 
 # Nano Banana Pro Image Generation & Editing
@@ -19,6 +19,11 @@ uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "your
 **Edit existing image:**
 ```bash
 uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "editing instructions" --filename "output-name.png" --input-image "path/to/input.png" [--resolution 1K|2K|4K] [--api-key KEY]
+```
+
+**Combine/edit multiple images (up to 14):**
+```bash
+uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "combine these images into a scene" --filename "output-name.png" --input-image "image1.png" "image2.png" "image3.png" [--resolution 1K|2K|4K] [--api-key KEY]
 ```
 
 **Important:** Always run from the user's current working directory so images are saved where the user is working, not in the skill directory.
@@ -66,9 +71,23 @@ Examples:
 
 When the user wants to modify an existing image:
 1. Check if they provide an image path or reference an image in the current directory
-2. Use `--input-image` parameter with the path to the image
+2. Use `--input-image` parameter with the path(s) to the image(s)
 3. The prompt should contain editing instructions (e.g., "make the sky more dramatic", "remove the person", "change to cartoon style")
 4. Common editing tasks: add/remove elements, change style, adjust colors, blur background, etc.
+
+## Multiple Image Input
+
+The Gemini 3 Pro Image API supports up to **14 reference images** per request:
+- Up to 6 high-fidelity object images
+- Up to 5 character-consistency images
+
+Pass multiple paths to `--input-image` separated by spaces. Use cases include:
+- **Compositing**: combine a product from one image with a background from another
+- **Style transfer**: apply the style of one image to the content of another
+- **Character consistency**: provide multiple reference photos of a person to maintain likeness
+- **Group scenes**: provide individual portraits to compose a group photo
+
+When referencing specific images in the prompt, label them (e.g., "Take the dress from the first image and place it on the person from the second image").
 
 ## Prompt Handling
 
@@ -94,4 +113,9 @@ uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "A se
 **Edit existing image:**
 ```bash
 uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "make the sky more dramatic with storm clouds" --filename "2025-11-23-14-25-30-dramatic-sky.png" --input-image "original-photo.jpg" --resolution 2K
+```
+
+**Combine multiple images:**
+```bash
+uv run ~/.claude/skills/nano-banana-pro/scripts/generate_image.py --prompt "Take the dress from the first image and let the woman from the second image wear it. Professional e-commerce photo." --filename "2025-11-23-14-30-00-fashion-composite.png" --input-image "dress.png" "model.png" --resolution 2K
 ```
