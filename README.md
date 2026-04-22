@@ -66,6 +66,9 @@ Discover how Agent Skills can customise AI agents in these free tutorials.
 | [mgrep-code-search](https://github.com/intellectronica/agent-skills/tree/main/skills/mgrep-code-search) | Semantic code search using mgrep for efficient codebase exploration. This skill should be used when searching or exploring codebases with more than 30 non-gitignored files and/or nested directory structures. It provides natural language semantic search that complements traditional grep/ripgrep for finding features, understanding intent, and exploring unfamiliar code. |
 | | ```npx skills add intellectronica/agent-skills --skill mgrep-code-search``` |
 | | ```claude plugin install mgrep-code-search@intellectronica-skills``` |
+| [monologue-notes-api](https://github.com/intellectronica/agent-skills/tree/main/skills/monologue-notes-api) | Read or search Monologue notes through the Monologue Notes REST API. This read-only skill covers authentication with `MONOLOGUE_API_KEY`, listing notes, fetching a single note, pagination, filters, and error handling. |
+| | ```npx skills add intellectronica/agent-skills --skill monologue-notes-api``` |
+| | ```claude plugin install monologue-notes-api@intellectronica-skills``` |
 | [nano-banana-2](https://github.com/intellectronica/agent-skills/tree/main/skills/nano-banana-2) | Generate and edit images using Google's Nano Banana 2 (Gemini 3.1 Flash Image Preview) API. This skill should be used when the user asks to create or modify images, especially when they need fast iteration, explicit aspect-ratio control, or resolution control from 512px to 4K. |
 | | ```npx skills add intellectronica/agent-skills --skill nano-banana-2``` |
 | | ```claude plugin install nano-banana-2@intellectronica-skills``` |
