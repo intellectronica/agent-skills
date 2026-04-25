@@ -1,443 +1,297 @@
 # Other Services Reference
 
-Guide to Classroom, Chat, Contacts, Tasks, People, Groups, and Keep.
+Use this for Chat, Classroom, Contacts, Tasks, People, Groups, Admin, Keep, and local time helpers.
 
-## Google Classroom
+## Chat (Workspace)
 
-### Courses
+Chat commands require Google Workspace; consumer Gmail accounts are not supported.
+
+Spaces:
 
 ```bash
-# List courses
-gog classroom courses
-gog classroom courses --state ACTIVE
-gog classroom courses --state ARCHIVED
-
-# Get course details
-gog classroom courses get <courseId>
-
-# Create course
-gog classroom courses create --name "Physics 101"
-gog classroom courses create --name "Physics 101" --owner me --state ACTIVE
-
-# Update course
-gog classroom courses update <courseId> --name "Physics 102"
-gog classroom courses update <courseId> --state ARCHIVED
-
-# Delete course
-gog classroom courses delete <courseId>
-
-# Archive/unarchive
-gog classroom courses archive <courseId>
-gog classroom courses unarchive <courseId>
-
-# Join/leave course
-gog classroom courses join <courseId> --role student
-gog classroom courses leave <courseId>
-
-# Get course URLs
-gog classroom courses url <courseId1> <courseId2>
+gog chat spaces list
+gog chat spaces find "Engineering"
+gog chat spaces find "Engineering" --exact
+gog chat spaces create "Project Room" --member alice@example.com --member bob@example.com
 ```
 
-### Students & Teachers
+Messages and threads:
 
 ```bash
-# List students
-gog classroom students <courseId>
+gog chat messages list spaces/<spaceId> --max 50
+gog chat messages list spaces/<spaceId> --thread spaces/<spaceId>/threads/<threadId>
+gog chat messages list spaces/<spaceId> --unread
+gog chat messages send spaces/<spaceId> --text "Build complete"
+gog chat messages send spaces/<spaceId> --text "Reply" --thread spaces/<spaceId>/threads/<threadId>
+gog chat threads list spaces/<spaceId>
+```
 
-# Get student
-gog classroom students get <courseId> <userId>
+Reactions:
 
-# Add student
-gog classroom students add <courseId> user@example.com
-gog classroom students add <courseId> user@example.com --enrollment-code CODE
+```bash
+gog chat messages reactions list spaces/<spaceId>/messages/<messageId>
+gog chat messages react spaces/<spaceId>/messages/<messageId> <emoji>
+gog chat messages reactions create spaces/<spaceId>/messages/<messageId> <emoji>
+gog chat messages reactions delete spaces/<spaceId>/messages/<messageId>/reactions/<reactionId>
+```
 
-# Remove student
-gog classroom students remove <courseId> <userId>
+Direct messages:
 
-# List teachers
-gog classroom teachers <courseId>
+```bash
+gog chat dm space user@example.com
+gog chat dm send user@example.com --text "Ping"
+gog chat dm send user@example.com --text "Reply" --thread spaces/<spaceId>/threads/<threadId>
+```
 
-# Add/remove teachers
-gog classroom teachers add <courseId> teacher@example.com
-gog classroom teachers remove <courseId> <userId>
+## Classroom
 
-# Full roster
+Classroom commands generally require Google Workspace for Education. Personal accounts have limited support.
+
+Courses:
+
+```bash
+gog classroom courses list
+gog classroom courses list --role teacher
+gog classroom courses get <courseId>
+gog classroom courses create --name "Physics 101" --owner me --state ACTIVE
+gog classroom courses update <courseId> --name "Physics 102"
+gog classroom courses archive <courseId>
+gog classroom courses unarchive <courseId>
+gog classroom courses delete <courseId>
+gog classroom courses url <courseId>
+```
+
+Roster:
+
+```bash
 gog classroom roster <courseId>
 gog classroom roster <courseId> --students
 gog classroom roster <courseId> --teachers
+gog classroom students list <courseId>
+gog classroom students get <courseId> <userId>
+gog classroom students add <courseId> <userId>
+gog classroom students remove <courseId> <userId>
+gog classroom teachers list <courseId>
+gog classroom teachers add <courseId> <userId>
+gog classroom teachers remove <courseId> <userId>
 ```
 
-### Coursework
+Coursework and materials:
 
 ```bash
-# List coursework
-gog classroom coursework <courseId>
-gog classroom coursework <courseId> --state PUBLISHED
-gog classroom coursework <courseId> --topic <topicId>
-
-# Get coursework
+gog classroom coursework list <courseId>
+gog classroom coursework list <courseId> --state PUBLISHED --topic <topicId>
 gog classroom coursework get <courseId> <courseworkId>
-
-# Create assignment
-gog classroom coursework create <courseId> \
-  --title "Homework 1" \
-  --description "Complete exercises 1-10" \
-  --type ASSIGNMENT \
-  --due "2024-12-31T23:59:59Z" \
-  --max-points 100
-
-# Update coursework
-gog classroom coursework update <courseId> <courseworkId> --title "Updated Title"
-
-# Delete coursework
+gog classroom coursework create <courseId> --title "Homework 1" --type ASSIGNMENT --state PUBLISHED --due "2026-05-01T23:59:59Z" --max-points 100
+gog classroom coursework update <courseId> <courseworkId> --title "Updated"
+gog classroom coursework assignees <courseId> <courseworkId> --mode INDIVIDUAL_STUDENTS --add-student <studentId>
 gog classroom coursework delete <courseId> <courseworkId>
 
-# Manage assignees
-gog classroom coursework assignees <courseId> <courseworkId> --mode ALL_STUDENTS
-gog classroom coursework assignees <courseId> <courseworkId> \
-  --mode INDIVIDUAL_STUDENTS \
-  --add-student user1@example.com
-```
-
-### Submissions
-
-```bash
-# List submissions
-gog classroom submissions <courseId> <courseworkId>
-gog classroom submissions <courseId> <courseworkId> --state TURNED_IN
-
-# Get submission
-gog classroom submissions get <courseId> <courseworkId> <submissionId>
-
-# Turn in submission
-gog classroom submissions turn-in <courseId> <courseworkId> <submissionId>
-
-# Reclaim submission
-gog classroom submissions reclaim <courseId> <courseworkId> <submissionId>
-
-# Return submission
-gog classroom submissions return <courseId> <courseworkId> <submissionId>
-
-# Grade submission
-gog classroom submissions grade <courseId> <courseworkId> <submissionId> --grade 95
-```
-
-### Materials
-
-```bash
-# List materials
-gog classroom materials <courseId>
-
-# Create/update/delete materials
-gog classroom materials create <courseId> --title "Lecture Notes"
-gog classroom materials update <courseId> <materialId> --title "Updated Notes"
+gog classroom materials list <courseId>
+gog classroom materials get <courseId> <materialId>
+gog classroom materials create <courseId> --title "Syllabus" --state PUBLISHED
+gog classroom materials update <courseId> <materialId> --title "Updated"
 gog classroom materials delete <courseId> <materialId>
 ```
 
-### Announcements
+Submissions:
 
 ```bash
-# List announcements
-gog classroom announcements <courseId>
+gog classroom submissions list <courseId> <courseworkId>
+gog classroom submissions list <courseId> <courseworkId> --state TURNED_IN
+gog classroom submissions get <courseId> <courseworkId> <submissionId>
+gog classroom submissions grade <courseId> <courseworkId> <submissionId> --grade 95
+gog classroom submissions return <courseId> <courseworkId> <submissionId>
+gog classroom submissions turn-in <courseId> <courseworkId> <submissionId>
+gog classroom submissions reclaim <courseId> <courseworkId> <submissionId>
+```
 
-# Create announcement
-gog classroom announcements create <courseId> --text "Class cancelled tomorrow"
+Announcements, topics, invitations, guardians, profile:
 
-# Update/delete
-gog classroom announcements update <courseId> <announcementId> --text "Updated text"
+```bash
+gog classroom announcements list <courseId>
+gog classroom announcements create <courseId> --text "Welcome"
+gog classroom announcements update <courseId> <announcementId> --text "Updated"
+gog classroom announcements assignees <courseId> <announcementId> --mode INDIVIDUAL_STUDENTS --add-student <studentId>
 gog classroom announcements delete <courseId> <announcementId>
-```
 
-### Topics
-
-```bash
-# List topics
-gog classroom topics <courseId>
-
-# Create topic
+gog classroom topics list <courseId>
 gog classroom topics create <courseId> --name "Unit 1"
-
-# Update/delete
-gog classroom topics update <courseId> <topicId> --name "Unit 1: Introduction"
+gog classroom topics update <courseId> <topicId> --name "Unit 2"
 gog classroom topics delete <courseId> <topicId>
-```
 
-### Guardians
+gog classroom invitations list
+gog classroom invitations create <courseId> <userId> --role student
+gog classroom invitations accept <invitationId>
+gog classroom invitations delete <invitationId>
 
-```bash
-# List guardians
-gog classroom guardians <studentId>
-
-# List guardian invitations
-gog classroom guardian-invitations <studentId>
-
-# Invite guardian
+gog classroom guardians list <studentId>
+gog classroom guardians get <studentId> <guardianId>
+gog classroom guardians delete <studentId> <guardianId>
+gog classroom guardian-invitations list <studentId>
 gog classroom guardian-invitations create <studentId> --email parent@example.com
+
+gog classroom profile get
+gog classroom profile get <userId>
 ```
 
-### Profile
+## Contacts
+
+Search/list/get:
 
 ```bash
-gog classroom profile
-gog classroom profile <userId>
-```
-
----
-
-## Google Chat (Workspace)
-
-### Spaces
-
-```bash
-# List spaces
-gog chat spaces list
-
-# Find space by name
-gog chat spaces find "Team Chat"
-
-# Create space
-gog chat spaces create "Project Discussion"
-gog chat spaces create "Project Discussion" --member user1@example.com --member user2@example.com
-```
-
-### Messages
-
-```bash
-# List messages in space
-gog chat messages list <spaceId>
-gog chat messages list <spaceId> --max 50
-gog chat messages list <spaceId> --unread
-
-# List messages in thread
-gog chat messages list <spaceId> --thread <threadId>
-
-# Send message
-gog chat messages send <spaceId> --text "Hello team!"
-
-# Reply to thread
-gog chat messages send <spaceId> --text "Reply" --thread <threadId>
-```
-
-### Threads
-
-```bash
-gog chat threads list <spaceId>
-```
-
-### Direct Messages
-
-```bash
-# Get/create DM space with user
-gog chat dm space user@example.com
-
-# Send DM
-gog chat dm send user@example.com --text "Hi there!"
-
-# Reply to DM thread
-gog chat dm send user@example.com --text "Reply" --thread <threadId>
-```
-
----
-
-## Google Tasks
-
-### Task Lists
-
-```bash
-# List task lists
-gog tasks lists
-
-# Create task list
-gog tasks lists create "Personal"
-```
-
-### Tasks
-
-```bash
-# List tasks in list
-gog tasks list <tasklistId>
-
-# Get task
-gog tasks get <tasklistId> <taskId>
-
-# Add task
-gog tasks add <tasklistId> --title "Buy groceries"
-
-# Add task with details
-gog tasks add <tasklistId> \
-  --title "Project deadline" \
-  --notes "Submit final report" \
-  --due "2024-12-31"
-
-# Add repeating task
-gog tasks add <tasklistId> \
-  --title "Weekly review" \
-  --due "2024-12-20" \
-  --repeat weekly
-
-# Repeat options: daily, weekly, monthly, yearly
-gog tasks add <tasklistId> \
-  --title "Monthly report" \
-  --due "2024-12-01" \
-  --repeat monthly \
-  --repeat-count 12                # Repeat 12 times
-
-gog tasks add <tasklistId> \
-  --title "Daily standup" \
-  --due "2024-12-01" \
-  --repeat daily \
-  --repeat-until "2024-12-31"      # Repeat until date
-
-# Update task
-gog tasks update <tasklistId> <taskId> --title "Updated title"
-gog tasks update <tasklistId> <taskId> --notes "Updated notes"
-gog tasks update <tasklistId> <taskId> --due "2024-12-25"
-
-# Complete task
-gog tasks done <tasklistId> <taskId>
-
-# Uncomplete task
-gog tasks undo <tasklistId> <taskId>
-
-# Delete task
-gog tasks delete <tasklistId> <taskId>
-
-# Clear completed tasks from list
-gog tasks clear <tasklistId>
-```
-
-### Subtasks
-
-```bash
-# Add subtask
-gog tasks add <tasklistId> --title "Subtask" --parent <parentTaskId>
-
-# Add after specific task
-gog tasks add <tasklistId> --title "Task" --previous <previousTaskId>
-```
-
----
-
-## Google Contacts
-
-### Search & List
-
-```bash
-# Search contacts
-gog contacts search "john"
-
-# List all contacts
-gog contacts list
+gog contacts search "Ada"
 gog contacts list --max 100
+gog contacts get people/c1234567890
+gog contacts get ada@example.com
 ```
 
-### CRUD Operations
+Create/update:
 
 ```bash
-# Get contact
-gog contacts get people/c1234567890
-gog contacts get john@example.com
+gog contacts create --given "Ada" --family "Lovelace" --email ada@example.com --phone "+41441234567"
+gog contacts create --given "Ada" --org "Analytical Engines Ltd" --title "Programmer" --url https://example.com --custom source=gog
+gog contacts create --given "Ada" --address "street=1 Main St;city=Zurich;country=CH" --relation manager=Grace
 
-# Create contact
-gog contacts create --given "John" --family "Doe"
-gog contacts create --given "John" --email "john@example.com" --phone "+1234567890"
-
-# Update contact
-gog contacts update people/c1234567890 --given "Jonathan"
-gog contacts update people/c1234567890 --email "new@example.com"
-
-# Delete contact
+gog contacts update people/c1234567890 --given "Ada" --email ada@new.example
+gog contacts update people/c1234567890 --birthday "1815-12-10"
+gog contacts update people/c1234567890 --from-file contact.json
+gog contacts update people/c1234567890 --from-file - --ignore-etag
 gog contacts delete people/c1234567890
 ```
 
-### Workspace Directory
+Workspace directory and other contacts:
 
 ```bash
-# List directory
 gog contacts directory list
-
-# Search directory
 gog contacts directory search "smith"
-```
-
-### Other Contacts
-
-```bash
-# List "other contacts" (auto-added from interactions)
 gog contacts other list
-
-# Search other contacts
 gog contacts other search "jane"
+gog contacts other delete people/other...
 ```
 
----
+For bulk or precise People API payload updates, prefer `contacts update --from-file` after inspecting `contacts get --json`.
 
-## Google People
+## Tasks
+
+Task lists:
 
 ```bash
-# Get own profile
+gog tasks lists
+gog tasks lists create "Personal"
+```
+
+Tasks:
+
+```bash
+gog tasks list <tasklistId>
+gog tasks get <tasklistId> <taskId>
+gog tasks add <tasklistId> --title "Buy groceries"
+gog tasks add <tasklistId> --title "Project deadline" --notes "Submit final report" --due "2026-05-01"
+gog tasks update <tasklistId> <taskId> --title "Updated title"
+gog tasks update <tasklistId> <taskId> --due ""
+gog tasks done <tasklistId> <taskId>
+gog tasks undo <tasklistId> <taskId>
+gog tasks delete <tasklistId> <taskId>
+gog tasks clear <tasklistId>
+```
+
+Repeating tasks materialize occurrences:
+
+```bash
+gog tasks add <tasklistId> --title "Weekly review" --due "2026-04-27" --repeat weekly
+gog tasks add <tasklistId> --title "Monthly report" --due "2026-05-01" --repeat monthly --repeat-count 12
+gog tasks add <tasklistId> --title "Daily standup" --due "2026-04-25" --repeat daily --repeat-until "2026-05-01"
+gog tasks add <tasklistId> --title "Every other week" --due "2026-04-27" --recur-rrule "FREQ=WEEKLY;INTERVAL=2"
+```
+
+Subtasks/order:
+
+```bash
+gog tasks add <tasklistId> --title "Subtask" --parent <parentTaskId>
+gog tasks add <tasklistId> --title "Next task" --previous <previousTaskId>
+```
+
+## People
+
+```bash
 gog people me
-
-# Get user profile
-gog people get people/c1234567890
+gog people get people/<userId>
 gog people get user@example.com
-
-# Search people
-gog people search "john smith"
-
-# Get relations
+gog people search "Ada Lovelace" --max 5
 gog people relations
-gog people relations people/c1234567890 --type manager
+gog people relations people/<userId> --type manager
 ```
 
----
+`people search` is for Workspace directory/profile-style lookup; use `contacts search` for personal contacts.
 
-## Google Groups (Workspace)
+## Groups
+
+Groups commands use Cloud Identity and require Workspace scopes.
 
 ```bash
-# List groups
 gog groups list
-
-# Get group info
-gog groups get group@example.com
-
-# List group members
-gog groups members group@example.com
+gog groups members engineering@example.com
 ```
 
----
-
-## Google Keep (Workspace Only)
-
-Requires service account authentication.
+If scopes are missing:
 
 ```bash
-# List notes
-gog keep list
-
-# Get note
-gog keep get <noteId>
-
-# Create text note
-gog keep create --title "Shopping List" --text "Milk, Eggs, Bread"
-
-# Create checklist note
-gog keep create --title "Todo" --list "Task 1,Task 2,Task 3"
-
-# Delete note
-gog keep delete <noteId>
+gog auth add you@example.com --services groups --force-consent
 ```
 
----
+## Admin (Workspace)
 
-## Time Utilities
+Admin commands require a Workspace service account with domain-wide delegation and Admin SDK scopes.
+
+Users:
 
 ```bash
-# Get current time
+gog admin users list --domain example.com
+gog admin users get user@example.com
+gog admin users create user@example.com --given Ada --family Lovelace --password 'TempPass123!'
+gog admin users suspend user@example.com
+```
+
+Groups:
+
+```bash
+gog admin groups list --domain example.com
+gog admin groups members list engineering@example.com
+gog admin groups members add engineering@example.com user@example.com --role MEMBER
+gog admin groups members remove engineering@example.com user@example.com
+```
+
+Treat Admin writes as high impact. Use `--dry-run` when supported and require explicit user intent.
+
+## Keep (Workspace)
+
+Google Keep requires Workspace service-account access/domain-wide delegation.
+
+```bash
+gog keep --service-account ~/service-account.json --impersonate user@example.com list
+gog keep --service-account ~/service-account.json --impersonate user@example.com search "receipt"
+gog keep --service-account ~/service-account.json --impersonate user@example.com get <noteId>
+gog keep --service-account ~/service-account.json --impersonate user@example.com create --title "Shopping" --text "Milk\nEggs"
+gog keep --service-account ~/service-account.json --impersonate user@example.com create --title "Todo" --item "Task 1" --item "Task 2"
+gog keep --service-account ~/service-account.json --impersonate user@example.com attachment <attachmentName> --out ./file.bin
+gog keep --service-account ~/service-account.json --impersonate user@example.com delete <noteId>
+```
+
+If a service account is configured for the impersonated account, normal account selection can be enough:
+
+```bash
+gog auth service-account set user@example.com --key ~/service-account.json
+gog --account user@example.com keep list
+```
+
+## Time utilities
+
+```bash
 gog time now
-
-# Get time in specific timezone
+gog time now --timezone UTC
+gog time now --timezone Europe/Zurich
 gog time now --timezone America/New_York
-gog time now --timezone Europe/London
-gog time now --timezone Asia/Tokyo
 ```
+
+Use this for quick local/UTC conversions in scripts.

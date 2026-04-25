@@ -1,271 +1,176 @@
 # gogcli Configuration Reference
 
-Complete guide to configuration options and environment variables.
+## Config files
 
-## Configuration File
-
-Configuration is stored as JSON5 in platform-specific directories:
+Configuration is JSON5 in the platform config directory:
 
 | Platform | Path |
-|----------|------|
+| --- | --- |
 | macOS | `~/Library/Application Support/gogcli/config.json` |
 | Linux | `~/.config/gogcli/config.json` |
 | Windows | `%AppData%\gogcli\config.json` |
 
-### Viewing Configuration
-
 ```bash
-# Show config directory path
 gog config path
-
-# List all config values
 gog config list
-
-# Get specific value
-gog config get default_timezone
-
-# List all available keys
 gog config keys
-```
-
-### Setting Configuration
-
-```bash
-# Set value
-gog config set default_timezone America/New_York
-
-# Remove value
+gog config get default_timezone
+gog config set default_timezone Europe/Zurich
 gog config unset default_timezone
 ```
 
----
-
-## Configuration Keys
-
-### `keyring_backend`
-
-Force specific credential storage backend.
+## Common config keys
 
 ```bash
-gog config set keyring_backend keychain  # macOS Keychain
-gog config set keyring_backend file      # Encrypted file
-gog config set keyring_backend auto      # Auto-detect (default)
+gog config set default_account you@example.com
+gog config set default_timezone Europe/Zurich
+gog auth keyring file
 ```
 
-### `default_timezone`
-
-Default timezone for time display (IANA format).
-
-```bash
-gog config set default_timezone America/New_York
-gog config set default_timezone Europe/London
-gog config set default_timezone UTC
-```
-
-### `default_account`
-
-Default account when `--account` not specified.
-
-```bash
-gog config set default_account user@gmail.com
-```
-
-### `account_aliases`
-
-Map short names to email addresses. Set via `gog auth alias` commands.
-
-### `account_clients`
-
-Map specific accounts to OAuth clients.
+Useful structured config:
 
 ```json5
 {
-  "account_clients": {
-    "work@example.com": "work",
-    "personal@gmail.com": "personal"
-  }
+  keyring_backend: "auto",
+  default_timezone: "Europe/Zurich",
+  default_account: "you@example.com",
+  account_clients: {
+    "you@company.com": "work",
+  },
+  client_domains: {
+    "company.com": "work",
+  },
 }
 ```
 
-### `client_domains`
+Prefer `gog auth alias ...` and `gog --client ... auth credentials set --domain ...` over hand-editing aliases/client mappings.
 
-Map email domains to OAuth clients (auto-selection).
+## Environment variables
 
-```json5
-{
-  "client_domains": {
-    "example.com": "work",
-    "company.org": "enterprise"
-  }
-}
-```
-
----
-
-## Environment Variables
-
-Environment variables override configuration file values.
-
-### Account Selection
+Account/auth:
 
 ```bash
-# Default account
-export GOG_ACCOUNT=user@gmail.com
-
-# OAuth client selection
+export GOG_ACCOUNT=you@example.com
 export GOG_CLIENT=work
+export GOG_ACCESS_TOKEN="$(gcloud auth print-access-token)"
+export GOG_AUTH_MODE=adc
 ```
 
-### Output Format
+Output:
 
 ```bash
-# Default to JSON output
 export GOG_JSON=1
-
-# Default to plain/TSV output
 export GOG_PLAIN=1
-
-# Control colour output
-export GOG_COLOR=auto    # Auto-detect (default)
-export GOG_COLOR=always  # Force colours
-export GOG_COLOR=never   # Disable colours
-
-# Disable colours (standard)
+export GOG_COLOR=never
 export NO_COLOR=1
 ```
 
-### Time Settings
+Time and calendar:
 
 ```bash
-# Default timezone
-export GOG_TIMEZONE=America/New_York
-
-# Always show weekday in calendar output
+export GOG_TIMEZONE=Europe/Zurich
 export GOG_CALENDAR_WEEKDAY=1
 ```
 
-### Keyring Settings
+Keyring:
 
 ```bash
-# Force keyring backend
 export GOG_KEYRING_BACKEND=file
-
-# Encryption password for file backend
-export GOG_KEYRING_PASSWORD=your-secure-password
+export GOG_KEYRING_PASSWORD='...'
+export GOG_KEYRING_SERVICE_NAME=gogcli
 ```
 
-### Command Allowlist
-
-Restrict available commands (useful for sandboxed/agent execution):
+Agent safety:
 
 ```bash
-# Allow only calendar and tasks commands
-export GOG_ENABLE_COMMANDS=calendar,tasks
-
-# Allow Gmail read-only operations
-export GOG_ENABLE_COMMANDS=gmail
+export GOG_ENABLE_COMMANDS=calendar.events,calendar.freebusy,tasks
+export GOG_DISABLE_COMMANDS=gmail.send,gmail.drafts.send,drive.share
+export GOG_GMAIL_NO_SEND=1
 ```
 
----
+## Output modes
 
-## Output Formats
-
-All commands support three output modes:
-
-### Human-Friendly (Default)
-
-Coloured tables optimised for terminal display.
+Default text output is for humans. For agents and scripts, use JSON first:
 
 ```bash
-gog gmail search "is:unread"
+gog --json gmail search 'is:unread' | jq '.threads'
+gog --json --results-only drive search "budget" | jq .
+gog --json --select id,name,mimeType drive ls
 ```
 
-### JSON
-
-Machine-readable format for scripting and parsing.
+Use TSV when shell tools are enough:
 
 ```bash
-gog gmail search "is:unread" --json
-
-# Or via environment
-GOG_JSON=1 gog gmail search "is:unread"
+gog --plain gmail search 'is:unread' | cut -f1
 ```
 
-### Plain/TSV
+Errors, hints, and progress are intended for stderr so stdout remains parseable.
 
-Tab-separated values for piping to other tools.
+## Pagination and empty results
+
+List commands commonly support `--max`, `--page`, and sometimes `--all-pages` or `--all`.
 
 ```bash
-gog gmail search "is:unread" --plain
-
-# Or via environment
-GOG_PLAIN=1 gog gmail search "is:unread"
+gog --json gmail search 'newer_than:7d' --max 10 | jq -r '.nextPageToken'
+gog --json calendar events primary --today --all-pages
+gog --json calendar events primary --query "unlikely query" --fail-empty
 ```
 
----
+`--fail-empty` exits with a stable non-zero code when no results are found on commands that support it.
 
-## Pagination
+## Dates and times
 
-List commands support pagination:
+Agent guidance:
+
+- Generate RFC3339 datetimes with explicit timezone offsets for event-like fields.
+- Use `YYYY-MM-DD` only for date-only fields.
+- Calendar ranges also accept relative values such as `today`, `tomorrow`, `yesterday`, `monday`, and `next friday`.
+
+Examples:
 
 ```bash
-# Limit results
-gog gmail search "is:unread" --max 10
-
-# Get next page
-gog gmail search "is:unread" --page <nextPageToken>
+gog calendar events primary --from "2026-04-25T00:00:00+02:00" --to "2026-04-26T00:00:00+02:00"
+gog calendar events primary --today
+gog tasks add <tasklistId> --title "Renew" --due "2026-05-01"
 ```
 
-JSON output includes pagination token:
+## Safety controls
+
+For read-only or constrained automation:
 
 ```bash
-gog gmail search "is:unread" --json | jq '.nextPageToken'
+GOG_ENABLE_COMMANDS=calendar.events,calendar.freebusy,drive.search \
+  gog --no-input --json calendar events primary --today
+
+GOG_DISABLE_COMMANDS=gmail.send,gmail.forward,drive.share \
+  gog --no-input --json drive search "report"
+
+gog --gmail-no-send gmail send --to user@example.com --subject "Test" --body "Blocked"
 ```
 
----
-
-## Scripting Best Practices
-
-### Use JSON Output
+Per-account send guard:
 
 ```bash
-# Parse with jq
-gog gmail search "is:unread" --json | jq -r '.threads[].id'
+gog config no-send set you@example.com
+gog config no-send list
+gog config no-send remove you@example.com
 ```
 
-### Use Plain Output
+Stable exit-code help:
 
 ```bash
-# Simple field extraction
-gog gmail search "is:unread" --plain | cut -f1
+gog agent exit-codes
+gog exit-codes
 ```
 
-### Batch Operations
+## Discovering current syntax
 
 ```bash
-# Process multiple items
-gog gmail search "is:unread" --json | \
-  jq -r '.threads[].id' | \
-  xargs -I {} gog gmail thread modify {} --add LABEL_ID
+gog --help
+GOG_HELP=full gog --help
+gog <service> --help
+gog <service> <command> --help
+gog schema --json | jq .
 ```
 
-### Error Handling
-
-```bash
-# Check exit codes
-if gog gmail send --to user@example.com --subject "Test" --body "Hello"; then
-  echo "Sent successfully"
-else
-  echo "Send failed"
-fi
-```
-
-### Non-Interactive Mode
-
-```bash
-# Skip confirmations
-gog gmail send --to user@example.com --subject "Test" --body "Hello" --force
-
-# Fail instead of prompting
-gog auth add user@gmail.com --no-input
-```
+The generated local reference is `references/command-reference.md`.

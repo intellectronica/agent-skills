@@ -1,361 +1,231 @@
 # Calendar Operations Reference
 
-Comprehensive guide to Google Calendar operations with `gog`.
+Use this for listing calendars, events, availability, scheduling, RSVP, calendar aliases, subscriptions, secondary calendars, team calendars, and Workspace scheduling helpers.
 
-## Listing Calendars
+## Calendar discovery and aliases
 
 ```bash
-# List all calendars
 gog calendar calendars
-
-# JSON output
 gog calendar calendars --json
+gog calendar calendars --all-pages
+
+gog calendar alias list
+gog calendar alias set team team@group.calendar.google.com
+gog calendar alias unset team
+gog calendar events team --today
 ```
 
-## Listing Events
+Subscribe to shared calendars:
 
 ```bash
-# List events from primary calendar
-gog calendar events primary
-
-# List from specific calendar
-gog calendar events work@group.calendar.google.com
-
-# Filter by date range
-gog calendar events primary --from 2024-12-01T00:00:00Z --to 2024-12-31T23:59:59Z
-
-# Natural date formats also work
-gog calendar events primary --from "2024-12-01" --to "2024-12-31"
-
-# Search events
-gog calendar events primary --query "meeting"
-
-# Show weekday
-gog calendar events primary --weekday
-
-# Limit results
-gog calendar events primary --max 10
-
-# Paginate
-gog calendar events primary --page <nextPageToken>
+gog calendar subscribe user@example.com
+gog calendar subscribe team@group.calendar.google.com --color-id 9 --selected
 ```
 
----
+Create secondary calendars:
 
-## Getting Event Details
+```bash
+gog calendar create-calendar "Project Calendar" \
+  --description "Launch planning" \
+  --timezone Europe/Zurich \
+  --location "Zurich"
+```
+
+Access control:
+
+```bash
+gog calendar acl primary
+gog calendar colors
+```
+
+## Listing events
+
+```bash
+gog calendar events primary
+gog calendar events primary --today --weekday
+gog calendar events primary --tomorrow
+gog calendar events primary --week --week-start mon
+gog calendar events primary --days 14
+gog calendar events primary --from "2026-04-25T00:00:00+02:00" --to "2026-04-26T00:00:00+02:00"
+gog calendar events --all --from today --to tomorrow
+gog calendar events --cal primary --cal team --today
+gog calendar events primary --query "planning"
+gog calendar events primary --private-prop-filter "source=gog"
+gog calendar events primary --fields "id,summary,start,end"
+```
+
+Pagination and failure handling:
+
+```bash
+gog --json calendar events primary --today --max 10
+gog --json calendar events primary --today --all-pages
+gog calendar events primary --query "unlikely query" --fail-empty
+```
+
+## Event details
 
 ```bash
 gog calendar event primary <eventId>
 gog calendar get primary <eventId>
+gog calendar search "roadmap" --from today --days 30
 ```
 
----
+## Create events
 
-## Creating Events
-
-### Basic Event
-
-```bash
-gog calendar create primary \
-  --summary "Team Meeting" \
-  --from "2024-12-20T14:00:00" \
-  --to "2024-12-20T15:00:00"
-```
-
-### With Details
-
-```bash
-gog calendar create primary \
-  --summary "Project Review" \
-  --description "Quarterly review of project progress" \
-  --location "Conference Room A" \
-  --from "2024-12-20T14:00:00" \
-  --to "2024-12-20T15:00:00"
-```
-
-### With Attendees
+Prefer explicit RFC3339 timestamps with timezone offsets.
 
 ```bash
 gog calendar create primary \
   --summary "Team Sync" \
-  --from "2024-12-20T14:00:00" \
-  --to "2024-12-20T15:00:00" \
-  --attendees "alice@example.com,bob@example.com"
+  --from "2026-04-25T14:00:00+02:00" \
+  --to "2026-04-25T14:30:00+02:00" \
+  --attendees "alice@example.com,bob@example.com" \
+  --with-meet \
+  --send-updates all
 ```
 
-### All-Day Event
+Details:
+
+```bash
+gog calendar create primary \
+  --summary "Project Review" \
+  --description "Quarterly review" \
+  --location "Room 3" \
+  --from "2026-04-25T10:00:00+02:00" \
+  --to "2026-04-25T11:00:00+02:00" \
+  --event-color 2 \
+  --visibility private \
+  --transparency busy
+```
+
+All-day:
 
 ```bash
 gog calendar create primary \
   --summary "Company Holiday" \
-  --from "2024-12-25" \
-  --to "2024-12-26" \
+  --from "2026-05-01" \
+  --to "2026-05-02" \
   --all-day
 ```
 
-### With Recurrence
+Recurrence and reminders:
 
 ```bash
-# Weekly meeting
 gog calendar create primary \
   --summary "Weekly Standup" \
-  --from "2024-12-20T09:00:00" \
-  --to "2024-12-20T09:30:00" \
-  --rrule "FREQ=WEEKLY;BYDAY=MO,WE,FR"
-
-# Monthly meeting
-gog calendar create primary \
-  --summary "Monthly Review" \
-  --from "2024-12-01T10:00:00" \
-  --to "2024-12-01T11:00:00" \
-  --rrule "FREQ=MONTHLY;BYMONTHDAY=1"
+  --from "2026-04-27T09:00:00+02:00" \
+  --to "2026-04-27T09:30:00+02:00" \
+  --rrule "RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR" \
+  --reminder popup:10m \
+  --reminder email:1d
 ```
 
-### With Reminders
+Extended properties and attachments:
 
 ```bash
 gog calendar create primary \
-  --summary "Important Meeting" \
-  --from "2024-12-20T14:00:00" \
-  --to "2024-12-20T15:00:00" \
-  --reminders "10m,1h,1d"
+  --summary "Imported Event" \
+  --from "2026-04-25T12:00:00+02:00" \
+  --to "2026-04-25T13:00:00+02:00" \
+  --source-url "https://example.com/event" \
+  --source-title "Source" \
+  --private-prop source=gog \
+  --shared-prop project=alpha \
+  --attachment "https://drive.google.com/file/d/<fileId>/view"
 ```
 
----
-
-## Updating Events
+## Update, delete, RSVP
 
 ```bash
-# Update summary
 gog calendar update primary <eventId> --summary "Updated Title"
-
-# Update time
-gog calendar update primary <eventId> \
-  --from "2024-12-20T15:00:00" \
-  --to "2024-12-20T16:00:00"
-
-# Update multiple fields
-gog calendar update primary <eventId> \
-  --summary "New Title" \
-  --description "Updated description" \
-  --location "New Location"
-
-# Add attendee (preserves existing)
-gog calendar update primary <eventId> --add-attendee "new@example.com"
-
-# Replace all attendees
+gog calendar update primary <eventId> --from "2026-04-25T15:00:00+02:00" --to "2026-04-25T16:00:00+02:00"
+gog calendar update primary <eventId> --add-attendee new@example.com
 gog calendar update primary <eventId> --attendees "only@example.com"
-```
-
----
-
-## Deleting Events
-
-```bash
 gog calendar delete primary <eventId>
 ```
 
----
+Recurring-event updates/deletes can have scope flags in current builds. Check `gog calendar update --help` and `gog calendar delete --help` before altering a series.
 
-## Responding to Events
+Respond:
 
 ```bash
-# Accept invitation
-gog calendar respond primary <eventId> --status accepted
-
-# Decline
-gog calendar respond primary <eventId> --status declined
-
-# Tentative
+gog calendar respond primary <eventId> --status accepted --send-updates all
 gog calendar respond primary <eventId> --status tentative
-
-# Control notification sending
-gog calendar respond primary <eventId> \
-  --status accepted \
-  --send-updates all          # all, none, externalOnly
+gog calendar respond primary <eventId> --status declined --send-updates none
 ```
 
----
-
-## Checking Availability
-
-```bash
-# Check free/busy for calendars
-gog calendar freebusy "primary,work@group.calendar.google.com" \
-  --from "2024-12-20T08:00:00Z" \
-  --to "2024-12-20T18:00:00Z"
-```
-
----
-
-## Proposing Alternative Times
+Propose a time:
 
 ```bash
 gog calendar propose-time primary <eventId> \
-  --from "2024-12-21T14:00:00" \
-  --to "2024-12-21T15:00:00"
+  --from "2026-04-26T14:00:00+02:00" \
+  --to "2026-04-26T15:00:00+02:00"
 ```
 
----
-
-## Special Event Types
-
-### Focus Time
+## Availability and conflicts
 
 ```bash
-gog calendar focus-time create primary \
-  --from "2024-12-20T09:00:00" \
-  --to "2024-12-20T12:00:00" \
-  --summary "Deep Work" \
-  --auto-decline
+gog calendar freebusy primary --from "2026-04-25T09:00:00+02:00" --to "2026-04-25T17:00:00+02:00"
+gog calendar freebusy --cal primary --cal team --from "2026-04-25T09:00:00+02:00" --to "2026-04-25T17:00:00+02:00"
+gog calendar freebusy --all --from "2026-04-25T09:00:00+02:00" --to "2026-04-25T17:00:00+02:00"
+
+gog calendar conflicts --today --all
+gog calendar conflicts --from today --to tomorrow --cal primary
 ```
 
-### Out of Office
+Workspace helpers:
 
 ```bash
-gog calendar ooo create primary \
-  --from "2024-12-20T00:00:00" \
-  --to "2024-12-27T00:00:00" \
-  --summary "Holiday" \
-  --decline-message "I'm away until Dec 27"
-```
-
-### Working Location
-
-```bash
-# Office
-gog calendar working-location create primary \
-  --from "2024-12-20T09:00:00" \
-  --to "2024-12-20T17:00:00" \
-  --location office \
-  --building "HQ" \
-  --floor "3" \
-  --desk "3-42"
-
-# Home
-gog calendar working-location create primary \
-  --from "2024-12-20T09:00:00" \
-  --to "2024-12-20T17:00:00" \
-  --location home
-
-# Custom
-gog calendar working-location create primary \
-  --from "2024-12-20T09:00:00" \
-  --to "2024-12-20T17:00:00" \
-  --location custom \
-  --custom-location "Client Site"
-```
-
----
-
-## Calendar Colours
-
-```bash
-gog calendar colors
-```
-
----
-
-## Team Calendars
-
-```bash
-# View team calendar
-gog calendar team team@group.calendar.google.com
-
-# Filter by date range
-gog calendar team team@group.calendar.google.com \
-  --from "2024-12-01" \
-  --to "2024-12-31"
-```
-
----
-
-## Conflict Detection
-
-```bash
-gog calendar conflicts primary \
-  --from "2024-12-20T00:00:00Z" \
-  --to "2024-12-27T00:00:00Z"
-```
-
----
-
-## Workspace Users
-
-```bash
-# List workspace users (for scheduling)
-gog calendar users
 gog calendar users --max 50
+gog calendar team engineering@example.com --from today --days 7
 ```
 
----
+## Special event types
 
-## Access Control
+Focus Time:
 
 ```bash
-# List calendar ACLs
-gog calendar acl primary
-gog calendar acl work@group.calendar.google.com
+gog calendar focus-time primary \
+  --summary "Deep Work" \
+  --from "2026-04-25T09:00:00+02:00" \
+  --to "2026-04-25T12:00:00+02:00" \
+  --auto-decline all \
+  --decline-message "Focus block" \
+  --chat-status doNotDisturb
 ```
 
----
-
-## Time Formats
-
-Commands accept various time formats:
-
-| Format | Example |
-|--------|---------|
-| RFC3339 | `2024-12-20T14:00:00Z` |
-| RFC3339 with offset | `2024-12-20T14:00:00-05:00` |
-| Date only | `2024-12-20` |
-| ISO datetime | `2024-12-20T14:00:00` |
-
-The default timezone can be configured:
+Out of Office:
 
 ```bash
-# Set default timezone
-gog config set default_timezone America/New_York
-
-# Or via environment
-export GOG_TIMEZONE=Europe/London
-
-# Or per-command
-gog time now --timezone Asia/Tokyo
+gog calendar out-of-office primary \
+  --from "2026-05-01T00:00:00+02:00" \
+  --to "2026-05-05T00:00:00+02:00" \
+  --auto-decline all \
+  --decline-message "Away until May 5"
 ```
 
----
-
-## Scripting Examples
-
-### Find Available Slots
+Working Location:
 
 ```bash
-# Get free/busy and parse with jq
-gog calendar freebusy "user1@example.com,user2@example.com" \
-  --from "2024-12-20T08:00:00Z" \
-  --to "2024-12-20T18:00:00Z" \
-  --json | jq '.calendars'
+gog calendar working-location primary --from "2026-04-25" --to "2026-04-26" --type home
+gog calendar working-location primary --from "2026-04-25" --to "2026-04-26" --type office --office-label "HQ" --building-id HQ --floor-id 3 --desk-id 42
+gog calendar working-location primary --from "2026-04-25" --to "2026-04-26" --type custom --custom-label "Client site"
 ```
 
-### Batch Create Events
+Equivalent generic event creation is also available with `--event-type focus-time|out-of-office|working-location` and related `--focus-*`, `--ooo-*`, and `--working-*` flags.
 
-```bash
-# Create events from a file
-while IFS=$'\t' read -r summary from to; do
-  gog calendar create primary \
-    --summary "$summary" \
-    --from "$from" \
-    --to "$to"
-done < events.tsv
-```
+## Time input
 
-### Export Events
+Accepted formats include:
 
-```bash
-# Export events to JSON
-gog calendar events primary \
-  --from "2024-12-01" \
-  --to "2024-12-31" \
-  --json > december-events.json
-```
+| Kind | Example |
+| --- | --- |
+| RFC3339 | `2026-04-25T14:00:00Z` |
+| RFC3339 with offset | `2026-04-25T14:00:00+02:00` |
+| ISO offset without colon | `2026-04-25T14:00:00+0200` |
+| Local datetime | `2026-04-25 14:00:00` |
+| Date only | `2026-04-25` |
+| Relative ranges | `today`, `tomorrow`, `monday`, `next friday` |
+
+Generated automation should use RFC3339 with explicit timezone offsets.
+

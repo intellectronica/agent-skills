@@ -1,414 +1,276 @@
 # Gmail Operations Reference
 
-Comprehensive guide to Gmail operations with `gog`.
+Use this for Gmail search, reading, organization, sending, forwarding, autoreply, settings, watches, tracking, and batch mail workflows.
 
-## Search Syntax
+## Search syntax
 
-Gmail search uses standard Gmail search operators:
+Gmail queries use normal Gmail search operators:
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `from:` | Sender | `from:user@example.com` |
-| `to:` | Recipient | `to:me` |
-| `subject:` | Subject line | `subject:meeting` |
-| `is:unread` | Unread messages | `is:unread` |
-| `is:starred` | Starred messages | `is:starred` |
-| `is:important` | Important messages | `is:important` |
-| `has:attachment` | Has attachments | `has:attachment` |
-| `label:` | Label name | `label:work` |
-| `in:` | Location | `in:inbox`, `in:sent`, `in:trash` |
-| `after:` | Date filter | `after:2024/01/01` |
-| `before:` | Date filter | `before:2024/12/31` |
-| `newer_than:` | Relative date | `newer_than:7d` |
-| `older_than:` | Relative date | `older_than:1m` |
-| `larger:` | Size filter | `larger:5M` |
-| `smaller:` | Size filter | `smaller:1M` |
-| `filename:` | Attachment name | `filename:report.pdf` |
+| Operator | Example |
+| --- | --- |
+| sender/recipient | `from:alice@example.com`, `to:me` |
+| subject/body | `subject:invoice`, `"exact phrase"` |
+| state | `is:unread`, `is:starred`, `is:important` |
+| labels/location | `label:Project`, `in:inbox`, `in:sent`, `in:trash` |
+| attachments | `has:attachment`, `filename:pdf` |
+| dates | `after:2026/04/01`, `before:2026/05/01`, `newer_than:7d`, `older_than:1m` |
+| size | `larger:10M`, `smaller:1M` |
+| exclusion | `-label:newsletters`, `-from:noreply@example.com` |
 
-### Combining Operators
+## Reading mail
+
+Thread search:
 
 ```bash
-# Unread from specific sender in last week
-gog gmail search "is:unread from:boss@example.com newer_than:7d"
-
-# Large attachments from anyone
-gog gmail search "has:attachment larger:10M"
-
-# Exclude certain labels
-gog gmail search "is:unread -label:newsletters"
+gog gmail search 'is:unread newer_than:7d'
+gog --json gmail search 'from:boss@example.com has:attachment' --max 20
+gog --json gmail search 'older_than:1y' --max 200 | jq -r '.threads[].id'
 ```
 
----
-
-## Searching and Retrieving
-
-### Search Threads
+Message search:
 
 ```bash
-# Basic search
-gog gmail search "is:unread"
-
-# Limit results
-gog gmail search "is:unread" --max 10
-
-# Get next page
-gog gmail search "is:unread" --page <token>
-
-# JSON output for scripting
-gog gmail search "is:unread" --json
+gog gmail messages search 'from:alice@example.com'
+gog gmail messages search 'is:unread' --include-body
+gog gmail messages search 'subject:report newer_than:30d' --full
 ```
 
-### Search Messages
+Retrieve:
 
 ```bash
-# Search individual messages
-gog gmail messages search "from:user@example.com"
-
-# Include message body
-gog gmail messages search "is:unread" --include-body
-```
-
-### Get Thread
-
-```bash
-# Get full thread
 gog gmail thread get <threadId>
-
-# Download attachments
-gog gmail thread get <threadId> --download
-```
-
-### Get Message
-
-```bash
-# Get message (default format)
-gog gmail get <messageId>
-
-# Specific format
+gog gmail thread get <threadId> --full
+gog gmail thread get <threadId> --download --out-dir ./attachments
 gog gmail get <messageId> --format full
-gog gmail get <messageId> --format metadata
+gog gmail get <messageId> --format metadata --headers Subject,From,Date
 gog gmail get <messageId> --format raw
-
-# Get specific headers
-gog gmail get <messageId> --headers Subject,From,Date
-```
-
-### Get Attachments
-
-```bash
-# Download attachment
-gog gmail attachment <messageId> <attachmentId>
-
-# Specify output path
-gog gmail attachment <messageId> <attachmentId> --out ~/Downloads/
-
-# Specify filename
-gog gmail attachment <messageId> <attachmentId> --name report.pdf
-```
-
-### Get URLs
-
-```bash
-# Get Gmail web URLs
 gog gmail url <threadId1> <threadId2>
 ```
 
----
-
-## Sending Email
-
-### Basic Send
+Attachments:
 
 ```bash
-gog gmail send \
-  --to recipient@example.com \
-  --subject "Hello" \
-  --body "Plain text message"
+gog gmail thread attachments <threadId>
+gog gmail attachment <messageId> <attachmentId> --out ./attachments/
+gog gmail attachment <messageId> <attachmentId> --name report.pdf
 ```
 
-### HTML Body
-
-```bash
-gog gmail send \
-  --to recipient@example.com \
-  --subject "Hello" \
-  --body-html "<h1>Hello</h1><p>HTML message</p>"
-```
-
-### Multiple Recipients
-
-```bash
-gog gmail send \
-  --to user1@example.com \
-  --to user2@example.com \
-  --cc manager@example.com \
-  --bcc archive@example.com \
-  --subject "Team Update"
-  --body "Message to multiple recipients"
-```
-
-### Attachments
-
-```bash
-gog gmail send \
-  --to recipient@example.com \
-  --subject "Report" \
-  --body "Please see attached" \
-  --attach ~/Documents/report.pdf \
-  --attach ~/Documents/data.xlsx
-```
-
-### Reply to Message
-
-```bash
-gog gmail send \
-  --to recipient@example.com \
-  --subject "Re: Original Subject" \
-  --body "Reply content" \
-  --reply-to-message-id <originalMessageId>
-```
-
-### With Open Tracking
-
-```bash
-# Send with tracking (requires setup)
-gog gmail send \
-  --to recipient@example.com \
-  --subject "Tracked Email" \
-  --body-html "<p>This email tracks opens</p>" \
-  --track
-
-# Track multiple recipients separately
-gog gmail send \
-  --to user1@example.com \
-  --to user2@example.com \
-  --subject "Tracked" \
-  --body-html "<p>Each recipient tracked separately</p>" \
-  --track-split
-```
-
----
-
-## Labels
-
-### List Labels
-
-```bash
-gog gmail labels list
-gog gmail labels list --json
-```
-
-### Get Label
-
-```bash
-gog gmail labels get INBOX
-gog gmail labels get "Label Name"
-gog gmail labels get <labelId>
-```
-
-### Create Label
-
-```bash
-gog gmail labels create "Project/SubLabel"
-```
-
-### Modify Thread Labels
-
-```bash
-# Add label
-gog gmail thread modify <threadId> --add "Label Name"
-
-# Remove label
-gog gmail thread modify <threadId> --remove INBOX
-
-# Multiple operations
-gog gmail thread modify <threadId> --add Archive --remove INBOX
-```
-
-### Batch Label Modification
-
-```bash
-gog gmail labels modify <threadId1> <threadId2> --add "Done"
-```
-
----
-
-## Drafts
-
-### List Drafts
-
-```bash
-gog gmail drafts list
-gog gmail drafts list --max 10
-```
-
-### Create Draft
-
-```bash
-gog gmail drafts create \
-  --to recipient@example.com \
-  --subject "Draft Subject" \
-  --body "Draft content"
-```
-
-### Update Draft
-
-```bash
-gog gmail drafts update <draftId> \
-  --subject "Updated Subject" \
-  --body "Updated content"
-```
-
-### Send Draft
-
-```bash
-gog gmail drafts send <draftId>
-```
-
-### Delete Draft
-
-```bash
-gog gmail drafts delete <draftId>
-```
-
----
-
-## Settings
-
-### Autoforward
-
-```bash
-gog gmail autoforward status
-gog gmail autoforward enable forward@example.com
-gog gmail autoforward disable
-```
-
-### Delegates
-
-```bash
-gog gmail delegates list
-gog gmail delegates add assistant@example.com
-gog gmail delegates remove assistant@example.com
-```
-
-### Filters
-
-```bash
-# List filters
-gog gmail filters list
-
-# Get filter
-gog gmail filters get <filterId>
-
-# Delete filter
-gog gmail filters delete <filterId>
-```
-
-### Vacation Responder
-
-```bash
-# Check status
-gog gmail vacation status
-
-# Enable
-gog gmail vacation enable \
-  --subject "Out of Office" \
-  --body "I am currently away..." \
-  --from "2024-12-20T00:00:00Z" \
-  --to "2024-12-27T00:00:00Z"
-
-# Disable
-gog gmail vacation disable
-```
-
-### Send-As Addresses
-
-```bash
-gog gmail sendas list
-gog gmail sendas get alias@example.com
-```
-
----
-
-## Email Tracking
-
-### Setup Tracking
-
-```bash
-# Configure tracking worker URL
-gog gmail track setup --worker-url https://your-worker.workers.dev
-```
-
-### Check Status
-
-```bash
-gog gmail track status
-```
-
-### View Opens
-
-```bash
-# By tracking ID
-gog gmail track opens --id <trackingId>
-
-# By recipient
-gog gmail track opens --recipient user@example.com
-```
-
----
-
-## Watch (Pub/Sub Notifications)
-
-### Start Watching
-
-```bash
-# Watch all labels
-gog gmail watch start --topic projects/my-project/topics/gmail-notifications
-
-# Watch specific labels
-gog gmail watch start \
-  --topic projects/my-project/topics/gmail-notifications \
-  --label INBOX \
-  --label "Important"
-```
-
-### Check Status
-
-```bash
-gog gmail watch status
-```
-
-### Renew Watch
-
-```bash
-gog gmail watch renew
-```
-
-### Stop Watching
-
-```bash
-gog gmail watch stop
-```
-
-### Run Handler Server
-
-```bash
-gog gmail watch serve \
-  --bind 0.0.0.0 \
-  --port 8080 \
-  --path /webhook
-
-# Include message body in notifications
-gog gmail watch serve \
-  --bind 0.0.0.0 \
-  --port 8080 \
-  --path /webhook \
-  --include-body \
-  --max-bytes 20000
-```
-
-### Get History
+History:
 
 ```bash
 gog gmail history --since <historyId>
 ```
+
+## Sending and drafts
+
+Before sending from an agent, verify the user asked to actually send. Use `--dry-run` where possible or configure no-send guards when preparing content.
+
+```bash
+gog gmail send --to recipient@example.com --subject "Hello" --body "Plain text"
+gog gmail send --to recipient@example.com --subject "Report" --body-file ./body.txt --attach ./report.pdf
+gog gmail send --to user@example.com --subject "HTML" --body-html '<p>Hello</p>'
+gog gmail send --to user@example.com --subject "Alias" --from alias@example.com --body-file ./body.txt
+```
+
+Replies:
+
+```bash
+gog gmail send --reply-to-message-id <messageId> --reply-all --subject "Re: Topic" --body-file ./reply.txt
+gog gmail send --thread-id <threadId> --reply-all --quote --subject "Re: Topic" --body-file ./reply.txt
+```
+
+Forwarding:
+
+```bash
+gog gmail forward <messageId> --to user@example.com
+gog gmail forward <messageId> --to user@example.com --note "FYI" --from alias@example.com
+```
+
+Drafts:
+
+```bash
+gog gmail drafts list --max 10
+gog gmail drafts get <draftId> --download
+gog gmail drafts create --to user@example.com --subject "Draft" --body-file ./draft.txt
+gog gmail drafts update <draftId> --subject "Updated" --body-file ./draft.txt
+gog gmail drafts send <draftId>
+gog gmail drafts delete <draftId>
+```
+
+Tracking:
+
+```bash
+gog gmail track setup --worker-url https://your-worker.workers.dev
+gog gmail send --to user@example.com --subject "Tracked" --body-html '<p>Hello</p>' --track
+gog gmail send --to a@example.com --to b@example.com --subject "Tracked" --body-html '<p>Hello</p>' --track-split
+gog gmail track status
+gog gmail track opens <trackingId>
+gog gmail track opens --recipient user@example.com
+```
+
+## Labels and organization
+
+Labels:
+
+```bash
+gog gmail labels list
+gog gmail labels get INBOX
+gog gmail labels create "Project/Subproject"
+gog gmail labels rename "Old Label" "New Label"
+gog gmail labels style "Project" --text-color "#ffffff" --background-color "#16a34a"
+gog gmail labels style "Project" --label-list-visibility labelShow --message-list-visibility show
+gog gmail labels delete "Project/Old"
+```
+
+Thread/message label changes:
+
+```bash
+gog gmail thread modify <threadId> --add Project --remove INBOX
+gog gmail labels modify <threadId1> <threadId2> --add Done --remove UNREAD
+gog gmail messages modify <messageId> --add STARRED
+gog gmail batch modify <messageId1> <messageId2> --remove UNREAD
+```
+
+Convenience actions:
+
+```bash
+gog gmail archive <messageId1> <messageId2>
+gog gmail mark-read <messageId>
+gog gmail unread <messageId>
+gog gmail trash <messageId>
+gog gmail batch delete <messageId1> <messageId2>
+```
+
+Use care: `batch delete` permanently deletes messages.
+
+Batch patterns:
+
+```bash
+gog --json gmail search 'from:noreply@example.com' --max 200 | \
+  jq -r '.threads[].id' | \
+  xargs -n 50 gog gmail labels modify --remove INBOX
+
+gog --json gmail messages search 'older_than:90d label:updates' --max 500 | \
+  jq -r '.messages[].id' | \
+  xargs -n 50 gog gmail batch modify --add UpdatesArchive --remove INBOX
+```
+
+## Autoreply
+
+`gog gmail autoreply` is a one-shot command intended for cron/launchd or agent workflows. It replies once to matching messages, then labels them for dedupe.
+
+```bash
+gog gmail autoreply \
+  'to:support@example.com in:inbox -label:AutoReplied' \
+  --body-file ./support-autoreply.txt \
+  --label AutoReplied \
+  --archive \
+  --mark-read
+```
+
+Useful flags:
+
+```bash
+--max 20
+--subject "Re: ..."
+--body / --body-file / --body-html
+--from alias@example.com
+--reply-to support@example.com
+--label AutoReplied
+--archive
+--mark-read
+--skip-bulk
+--allow-self
+```
+
+It adds `Auto-Submitted: auto-replied` and skips common bulk/list/auto-generated mail by default.
+
+## Gmail settings
+
+Most settings commands work both as `gog gmail <group> ...` and `gog gmail settings <group> ...`.
+
+Filters:
+
+```bash
+gog gmail filters list
+gog gmail filters get <filterId>
+gog gmail filters create --from newsletters@example.com --add-label Newsletters --remove-label INBOX
+gog gmail filters export --out filters.json
+gog gmail filters delete <filterId>
+```
+
+Forwarding and auto-forward:
+
+```bash
+gog gmail forwarding list
+gog gmail forwarding create forward@example.com
+gog gmail forwarding delete forward@example.com
+gog gmail autoforward get
+gog gmail autoforward update --enabled --email forward@example.com --disposition archive
+```
+
+Delegates:
+
+```bash
+gog gmail delegates list
+gog gmail delegates get assistant@example.com
+gog gmail delegates add assistant@example.com
+gog gmail delegates remove assistant@example.com
+```
+
+Send-as aliases:
+
+```bash
+gog gmail sendas list
+gog gmail sendas get alias@example.com
+gog gmail sendas create alias@example.com --display-name "Ada Example"
+gog gmail sendas verify alias@example.com
+gog gmail sendas update alias@example.com --reply-to support@example.com
+gog gmail sendas delete alias@example.com
+```
+
+Vacation responder:
+
+```bash
+gog gmail vacation get
+gog gmail vacation update --enabled --subject "Out of office" --body "Back Monday"
+gog gmail vacation update --disabled
+```
+
+Settings that create forwarding, delegates, or public-ish automation may prompt or require `--force` in non-interactive contexts. Explain the effect first.
+
+## Pub/Sub watch
+
+```bash
+gog gmail watch start --topic projects/my-project/topics/gmail-notifications
+gog gmail watch start --topic projects/my-project/topics/gmail-notifications --label INBOX --label IMPORTANT
+gog gmail watch status
+gog gmail watch renew
+gog gmail watch stop
+```
+
+Handler:
+
+```bash
+gog gmail watch serve --bind 0.0.0.0 --port 8080 --path /webhook
+gog gmail watch serve --bind 0.0.0.0 --port 8080 --path /webhook --include-body --max-bytes 20000
+```
+
+Recent versions also support history-type filtering on watch serve. Check `gog gmail watch serve --help` before relying on exact flags.
+
+## Auth/scopes
+
+Readonly mail:
+
+```bash
+gog auth add you@example.com --services gmail --gmail-scope readonly
+```
+
+Full Gmail automation/settings:
+
+```bash
+gog auth add you@example.com --services gmail --gmail-scope full --force-consent
+```
+
+Settings commands need Gmail settings scopes. If a settings/filter/delegate command fails with insufficient scopes, re-auth with `--services gmail --force-consent`.
+
