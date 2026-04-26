@@ -21,10 +21,17 @@ With timestamps:
 uv run scripts/get_transcript.py "VIDEO_URL_OR_ID" --timestamps
 ```
 
+Title only (useful for naming output files):
+
+```bash
+uv run scripts/get_transcript.py "VIDEO_URL_OR_ID" --title-only
+```
+
 ## Defaults
 
 - **Without timestamps** (default): Plain text, one line per caption segment
 - **With timestamps**: `[MM:SS] text` format (or `[HH:MM:SS]` for longer videos)
+- **Title only**: Fetches the video title via YouTube's oEmbed API (no auth required) and prints it to stdout
 
 ## Supported URL Formats
 
