@@ -1,11 +1,11 @@
 ---
 name: nano-banana-2
-description: Generate and edit images using Google's Nano Banana 2 (Gemini 3.1 Flash Image Preview) API. This skill should be used when the user asks to create or modify images, especially when they need fast iteration, explicit aspect-ratio control, or resolution control from 512px to 4K.
+description: Generate and edit images using Nano Banana 2 through Google Gemini or the optional Atlas Cloud provider. This skill should be used when the user asks to create or modify images, especially when they need fast iteration, explicit aspect-ratio control, or resolution control from 512px to 4K.
 ---
 
 # Nano Banana 2 Image Generation & Editing
 
-Generate new images or edit existing images with Nano Banana 2 (`gemini-3.1-flash-image-preview`).
+Generate new images or edit existing images with Nano Banana 2. Google Gemini remains the default provider; Atlas Cloud is an explicit optional provider.
 
 ## Usage
 
@@ -21,12 +21,19 @@ uv run ./.agents/skills/nano-banana-2/scripts/generate_image.py --prompt "your i
 uv run ./.agents/skills/nano-banana-2/scripts/generate_image.py --prompt "editing instructions" --filename "output-name.png" --input-image "path/to/input1.png" [--input-image "path/to/input2.png" ...] [--resolution 512px|1K|2K|4K] [--aspect-ratio RATIO] [--api-key KEY]
 ```
 
+**Use Atlas Cloud:**
+```bash
+uv run ./.agents/skills/nano-banana-2/scripts/generate_image.py --provider atlas --prompt "your image description" --filename "output-name.png" [--input-image "path/to/input.png"] [--resolution 1K|2K|4K] [--aspect-ratio RATIO] [--atlas-api-key KEY]
+```
+
 Always run from the user's current working directory so outputs are saved in the active project context.
 
 ## Model
 
-Use model code:
-- `gemini-3.1-flash-image-preview` (Nano Banana 2)
+Provider model routes:
+- Google Gemini (default): `gemini-3.1-flash-image-preview`
+- Atlas Cloud text generation: `google/nano-banana-2/text-to-image`
+- Atlas Cloud image editing: `google/nano-banana-2/edit`
 
 Do not use `gemini-3-pro-image-preview` in this skill.
 
@@ -46,6 +53,8 @@ Map common user language:
 
 Use uppercase `K` for `1K`, `2K`, `4K`.
 
+Atlas Cloud supports `1K`, `2K`, and `4K` for these routes. It promotes an auto-detected 512px reference to 1K and rejects an explicitly requested `512px` resolution.
+
 ## Aspect Ratios
 
 Supported aspect ratios:
@@ -61,6 +70,8 @@ Map common requests:
 
 If unspecified, let the model default behavior apply.
 
+Atlas Cloud supports `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, and `21:9`. The script reports a validation error before submission for other ratios.
+
 ## Reference Images (New in Gemini 3 Image workflows)
 
 Provide up to 14 reference images when needed by repeating `--input-image`:
@@ -72,11 +83,15 @@ Use one image for simple edits; use multiple images for composition or consisten
 
 ## API Key
 
-Resolve API key in this order:
+For the default Gemini provider, resolve the API key in this order:
 1. `--api-key` argument
 2. `GEMINI_API_KEY` environment variable
 
-If no key is available, stop and report a clear error.
+For Atlas Cloud, resolve the API key in this order:
+1. `--atlas-api-key` argument
+2. `ATLASCLOUD_API_KEY` environment variable
+
+Atlas uploads local references, submits generation once, polls the returned prediction with bounded GET requests, and downloads only HTTPS media URLs from its allowed delivery domains. If no provider key is available, stop and report a clear error.
 
 ## Filename Generation
 
