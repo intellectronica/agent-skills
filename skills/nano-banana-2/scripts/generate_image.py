@@ -261,6 +261,9 @@ def generate_with_atlas(
     data = _atlas_data(response)
     outputs = _atlas_outputs(data)
     status = str(data.get("status", "")).lower()
+    if status in ATLAS_TERMINAL_FAILURE:
+        error = data.get("error") or data.get("message") or status
+        raise RuntimeError(f"Atlas Cloud generation failed: {error}")
     if status not in ATLAS_TERMINAL_SUCCESS or not outputs:
         prediction_id = data.get("id")
         if not isinstance(prediction_id, str) or not prediction_id:

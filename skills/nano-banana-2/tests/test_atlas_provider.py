@@ -148,6 +148,29 @@ class AtlasProviderTests(unittest.TestCase):
         self.assertEqual(payload["model"], MODULE.ATLAS_EDIT_MODEL)
         self.assertEqual(payload["images"], [upload_url])
 
+    def test_immediate_failure_is_reported_without_polling(self):
+        for payload in (
+            {"data": {"status": "failed", "error": "bad prompt"}},
+            {"data": {"id": "abc123", "status": "failed", "error": "bad prompt"}},
+        ):
+            session = FakeSession(posts=[FakeResponse(payload=payload)], gets=[])
+            with (
+                tempfile.TemporaryDirectory() as tmp,
+                self.assertRaisesRegex(RuntimeError, "generation failed: bad prompt"),
+            ):
+                MODULE.generate_with_atlas(
+                    session,
+                    api_key="test-key",
+                    prompt="x",
+                    output_path=Path(tmp) / "out.png",
+                    input_paths=[],
+                    resolution="1K",
+                    aspect_ratio=None,
+                    pil_image=Image,
+                    sleep=lambda _: None,
+                )
+            self.assertEqual(session.get_calls, [])
+
     def test_untrusted_output_url_is_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "untrusted Atlas media URL"):
             MODULE._validate_atlas_media_url("http://127.0.0.1/private.png")
