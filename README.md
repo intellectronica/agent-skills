@@ -5,6 +5,7 @@
 ### Installation
 
 - **Using the `skills` CLI**: `npx skills add intellectronica/agent-skills --skill skill-name`
+- **Using the GitHub CLI**: `gh skill install intellectronica/agent-skills skill-name`
 - **As a Plugin Marketplace (Claude Code / Cowork)**
   - `claude plugin marketplace add intellectronica/agent-skills`
   - `claude plugin install skill-name@intellectronica-skills`
