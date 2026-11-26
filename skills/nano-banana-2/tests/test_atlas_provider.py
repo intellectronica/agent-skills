@@ -25,10 +25,22 @@ class FakeResponse:
         payload=None,
         content=b"",
         url="https://static.atlascloud.ai/output.png",
+        headers=None,
+        is_redirect=False,
     ):
         self.payload = payload
         self.content = content
         self.url = url
+        self.headers = dict(headers or {})
+        self.is_redirect = is_redirect
+        self.closed = False
+
+    def iter_content(self, chunk_size=1):
+        for start in range(0, len(self.content), chunk_size):
+            yield self.content[start : start + chunk_size]
+
+    def close(self):
+        self.closed = True
 
     def raise_for_status(self):
         return None
@@ -174,6 +186,72 @@ class AtlasProviderTests(unittest.TestCase):
     def test_untrusted_output_url_is_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "untrusted Atlas media URL"):
             MODULE._validate_atlas_media_url("http://127.0.0.1/private.png")
+
+    def _download(self, responses):
+        session = FakeSession(posts=[], gets=responses)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "out.png"
+            MODULE._download_atlas_image(
+                session, "https://static.atlascloud.ai/output.png", out, Image
+            )
+            return session, out.exists()
+
+    def test_download_streams_without_following_redirects_automatically(self):
+        session, saved = self._download([FakeResponse(content=png_bytes())])
+        self.assertTrue(saved)
+        _, kwargs = session.get_calls[0]
+        self.assertIs(kwargs["allow_redirects"], False)
+        self.assertIs(kwargs["stream"], True)
+
+    def test_redirect_to_untrusted_host_is_rejected_before_it_is_requested(self):
+        redirect = FakeResponse(
+            headers={"Location": "http://169.254.169.254/latest/meta-data"},
+            is_redirect=True,
+        )
+        session = FakeSession(posts=[], gets=[redirect, FakeResponse(content=b"x")])
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(RuntimeError, "untrusted Atlas media URL"):
+                MODULE._download_atlas_image(
+                    session,
+                    "https://static.atlascloud.ai/output.png",
+                    Path(tmp) / "out.png",
+                    Image,
+                )
+        self.assertEqual(len(session.get_calls), 1)
+        self.assertTrue(redirect.closed)
+
+    def test_trusted_redirect_is_followed(self):
+        redirect = FakeResponse(
+            headers={"Location": "https://cdn.atlascloud.ai/final.png"},
+            is_redirect=True,
+        )
+        session, saved = self._download([redirect, FakeResponse(content=png_bytes())])
+        self.assertTrue(saved)
+        self.assertEqual(session.get_calls[1][0], "https://cdn.atlascloud.ai/final.png")
+
+    def test_oversized_body_is_rejected_while_streaming(self):
+        original = MODULE.ATLAS_MAX_DOWNLOAD_BYTES
+        MODULE.ATLAS_MAX_DOWNLOAD_BYTES = 1024
+        try:
+            with self.assertRaisesRegex(RuntimeError, "64 MiB download limit"):
+                self._download([FakeResponse(content=b"x" * 4096)])
+            with self.assertRaisesRegex(RuntimeError, "64 MiB download limit"):
+                self._download(
+                    [FakeResponse(content=b"x", headers={"Content-Length": "999999"})]
+                )
+        finally:
+            MODULE.ATLAS_MAX_DOWNLOAD_BYTES = original
+
+    def test_redirect_loop_is_bounded(self):
+        loop = [
+            FakeResponse(
+                headers={"Location": "https://static.atlascloud.ai/next.png"},
+                is_redirect=True,
+            )
+            for _ in range(MODULE.ATLAS_MAX_REDIRECTS + 1)
+        ]
+        with self.assertRaisesRegex(RuntimeError, "too many times"):
+            self._download(loop)
 
 
 if __name__ == "__main__":

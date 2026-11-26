@@ -31,7 +31,7 @@ import sys
 import time
 from io import BytesIO
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 SUPPORTED_ASPECT_RATIOS = [
     "1:1",
@@ -70,6 +70,7 @@ ATLAS_TERMINAL_SUCCESS = {"completed", "succeeded"}
 ATLAS_TERMINAL_FAILURE = {"failed", "timeout", "canceled", "cancelled"}
 ATLAS_OUTPUT_HOST_SUFFIXES = (".atlascloud.ai", ".aliyuncs.com")
 ATLAS_MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024
+ATLAS_MAX_REDIRECTS = 3
 
 
 def get_gemini_api_key(provided_key: str | None) -> str | None:
@@ -209,16 +210,45 @@ def _poll_atlas_prediction(
 
 
 def _download_atlas_image(session, url: str, output_path: Path, pil_image) -> None:
-    """Download one trusted output and normalize it to PNG."""
-    _validate_atlas_media_url(url)
-    response = session.get(url, timeout=(10, 120))
-    response.raise_for_status()
-    _validate_atlas_media_url(response.url)
-    content = response.content
-    if len(content) > ATLAS_MAX_DOWNLOAD_BYTES:
-        raise RuntimeError("Atlas Cloud output exceeds the 64 MiB download limit")
-    image = pil_image.open(BytesIO(content))
-    save_png(image, output_path)
+    """Download one trusted output and normalize it to PNG.
+
+    Redirects are followed manually so every hop is validated *before* it is
+    requested, and the body is streamed so the size limit is enforced while
+    reading instead of after the whole response is buffered.
+    """
+    current = _validate_atlas_media_url(url)
+    for _ in range(ATLAS_MAX_REDIRECTS + 1):
+        response = session.get(
+            current, timeout=(10, 120), allow_redirects=False, stream=True
+        )
+        try:
+            if getattr(response, "is_redirect", False):
+                location = (getattr(response, "headers", None) or {}).get("Location")
+                if not location:
+                    raise RuntimeError("Atlas Cloud output redirect has no Location")
+                current = _validate_atlas_media_url(urljoin(current, location))
+                continue
+            response.raise_for_status()
+            declared = (getattr(response, "headers", None) or {}).get("Content-Length")
+            if declared and declared.isdigit() and int(declared) > ATLAS_MAX_DOWNLOAD_BYTES:
+                raise RuntimeError("Atlas Cloud output exceeds the 64 MiB download limit")
+            chunks: list[bytes] = []
+            received = 0
+            for chunk in response.iter_content(chunk_size=64 * 1024):
+                received += len(chunk)
+                if received > ATLAS_MAX_DOWNLOAD_BYTES:
+                    raise RuntimeError(
+                        "Atlas Cloud output exceeds the 64 MiB download limit"
+                    )
+                chunks.append(chunk)
+        finally:
+            close = getattr(response, "close", None)
+            if close:
+                close()
+        image = pil_image.open(BytesIO(b"".join(chunks)))
+        save_png(image, output_path)
+        return
+    raise RuntimeError("Atlas Cloud output redirected too many times")
 
 
 def generate_with_atlas(
